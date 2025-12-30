@@ -4,18 +4,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Video, Play, Calendar, Clock, Search } from 'lucide-react'
+import { videoService, VideoLesson } from '@/services/videoService'
 
-interface VideoLesson {
-  id: string
-  title: string
-  description: string
-  category: 'ground' | 'flight' | 'safety' | 'systems'
-  duration: string
-  date: string
-  thumbnail?: string
-  videoUrl: string
-  instructor?: string
-}
 
 export default function VideosPage() {
   const { user, loading: authLoading } = useAuth()
@@ -34,70 +24,9 @@ export default function VideosPage() {
   useEffect(() => {
     if (authLoading || !user) return
     
-    // Load videos - in production, this would come from an API
-    const mockVideos: VideoLesson[] = [
-      {
-        id: '1',
-        title: 'Aircraft Systems Overview',
-        description: 'Comprehensive overview of aircraft systems including engine, electrical, and avionics.',
-        category: 'systems',
-        duration: '45:30',
-        date: '2024-01-10',
-        videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', // Replace with actual video URL
-        instructor: 'John Instructor',
-      },
-      {
-        id: '2',
-        title: 'Pre-Flight Inspection Walkthrough',
-        description: 'Step-by-step guide to performing a thorough pre-flight inspection.',
-        category: 'flight',
-        duration: '32:15',
-        date: '2024-01-08',
-        videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-        instructor: 'Jane Instructor',
-      },
-      {
-        id: '3',
-        title: 'Weather Patterns and Safety',
-        description: 'Understanding weather patterns and how they affect flight safety.',
-        category: 'safety',
-        duration: '55:20',
-        date: '2024-01-05',
-        videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-        instructor: 'John Instructor',
-      },
-      {
-        id: '4',
-        title: 'Aerodynamics Fundamentals',
-        description: 'Basic principles of aerodynamics and how they apply to flight.',
-        category: 'ground',
-        duration: '40:10',
-        date: '2024-01-03',
-        videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-        instructor: 'Jane Instructor',
-      },
-      {
-        id: '5',
-        title: 'Radio Communications',
-        description: 'Proper radio communication procedures and phraseology.',
-        category: 'ground',
-        duration: '28:45',
-        date: '2024-01-01',
-        videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-        instructor: 'John Instructor',
-      },
-      {
-        id: '6',
-        title: 'Emergency Procedures',
-        description: 'Critical emergency procedures every pilot must know.',
-        category: 'safety',
-        duration: '50:00',
-        date: '2023-12-28',
-        videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-        instructor: 'Jane Instructor',
-      },
-    ]
-    setVideos(mockVideos)
+    // Load videos from video service
+    const allVideos = videoService.getAllVideos()
+    setVideos(allVideos)
   }, [user, authLoading])
 
   if (authLoading || !user) {

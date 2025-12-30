@@ -88,6 +88,7 @@ export default function LoginPage() {
           <p className="mb-2">Demo Credentials:</p>
           <p>Student: student@example.com / password</p>
           <p>Instructor: instructor@example.com / password</p>
+          <p>Admin: admin@magnolia.com / password</p>
         </div>
       </div>
     </div>

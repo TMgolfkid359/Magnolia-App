@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
-export type UserRole = 'student' | 'instructor' | null
+export type UserRole = 'student' | 'instructor' | 'admin' | null
 export type User = {
   id: string
   name: string
@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const mockUsers = [
       { id: '1', name: 'John Student', email: 'student@example.com', role: 'student' as UserRole },
       { id: '2', name: 'Jane Instructor', email: 'instructor@example.com', role: 'instructor' as UserRole },
+      { id: '3', name: 'Admin User', email: 'admin@magnolia.com', role: 'admin' as UserRole },
     ]
 
     const foundUser = mockUsers.find(u => u.email === email)
