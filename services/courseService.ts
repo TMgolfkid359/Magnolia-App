@@ -14,6 +14,9 @@ export interface Course {
     type: 'document' | 'video' | 'quiz'
     title: string
     url?: string
+    fileData?: string // Base64 encoded file data for PDF/PPT
+    fileName?: string // Original file name
+    fileType?: string // MIME type (e.g., 'application/pdf', 'application/vnd.ms-powerpoint')
   }[]
 }
 

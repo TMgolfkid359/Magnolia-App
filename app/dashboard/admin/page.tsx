@@ -586,20 +586,65 @@ function CourseForm({
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
-                    URL {material.type !== 'quiz' && '(optional)'}
+                    {material.type === 'document' ? 'Upload File or URL' : material.type === 'video' ? 'Video URL' : 'URL'}
                   </label>
-                  <input
-                    type="text"
-                    value={material.url || ''}
-                    onChange={(e) => {
-                      const newMaterials = [...(formData.materials || [])]
-                      newMaterials[index] = { ...material, url: e.target.value }
-                      setFormData({ ...formData, materials: newMaterials })
-                    }}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
-                    placeholder={material.type === 'video' ? 'Video URL' : 'Document URL'}
-                    disabled={material.type === 'quiz'}
-                  />
+                  {material.type === 'document' ? (
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        accept=".pdf,.ppt,.pptx"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onloadend = () => {
+                              const newMaterials = [...(formData.materials || [])]
+                              newMaterials[index] = {
+                                ...material,
+                                fileData: reader.result as string,
+                                fileName: file.name,
+                                fileType: file.type,
+                                url: undefined, // Clear URL if file is uploaded
+                              }
+                              setFormData({ ...formData, materials: newMaterials })
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-magnolia-50 file:text-magnolia-700 hover:file:bg-magnolia-100"
+                      />
+                      {material.fileName && (
+                        <div className="text-xs text-green-600 flex items-center space-x-1">
+                          <CheckCircle className="h-3 w-3" />
+                          <span>{material.fileName}</span>
+                        </div>
+                      )}
+                      <input
+                        type="text"
+                        value={material.url || ''}
+                        onChange={(e) => {
+                          const newMaterials = [...(formData.materials || [])]
+                          newMaterials[index] = { ...material, url: e.target.value, fileData: undefined, fileName: undefined }
+                          setFormData({ ...formData, materials: newMaterials })
+                        }}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                        placeholder="Or enter document URL"
+                      />
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={material.url || ''}
+                      onChange={(e) => {
+                        const newMaterials = [...(formData.materials || [])]
+                        newMaterials[index] = { ...material, url: e.target.value }
+                        setFormData({ ...formData, materials: newMaterials })
+                      }}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                      placeholder={material.type === 'video' ? 'Video URL' : 'URL'}
+                      disabled={material.type === 'quiz'}
+                    />
+                  )}
                 </div>
               </div>
               <button
