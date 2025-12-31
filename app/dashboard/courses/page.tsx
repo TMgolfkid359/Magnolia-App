@@ -21,18 +21,6 @@ export default function CoursesPage() {
     }
   }, [user, authLoading, router])
 
-  useEffect(() => {
-    if (authLoading || !user) return
-    
-    // Load courses from courseService
-    const allCourses = courseService.getAllCourses()
-    setCourses(allCourses)
-    
-    // Check and update course completion status
-    checkCourseCompletion(allCourses)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading])
-
   // Check if course should be auto-completed
   const checkCourseCompletion = (coursesToCheck: Course[]) => {
     if (!user) return
@@ -84,6 +72,18 @@ export default function CoursesPage() {
     
     setCourses(updatedCourses)
   }
+
+  useEffect(() => {
+    if (authLoading || !user) return
+    
+    // Load courses from courseService
+    const allCourses = courseService.getAllCourses()
+    setCourses(allCourses)
+    
+    // Check and update course completion status
+    checkCourseCompletion(allCourses)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading])
 
   // Track material view when navigating
   const handleMaterialView = (courseId: string, materialIndex: number) => {
