@@ -153,9 +153,12 @@ export const examService = {
         if (Array.isArray(userAnswer)) {
           const userSet = new Set(userAnswer.map(a => a.toLowerCase().trim()))
           const correctSet = new Set(correctAnswer.map(a => a.toLowerCase().trim()))
-          if (userSet.size === correctSet.size && 
-              [...userSet].every(a => correctSet.has(a))) {
-            earnedPoints += question.points
+          // Check if sets are equal by comparing sizes and all elements
+          if (userSet.size === correctSet.size) {
+            const allMatch = Array.from(userSet).every(a => correctSet.has(a))
+            if (allMatch) {
+              earnedPoints += question.points
+            }
           }
         }
       } else {
