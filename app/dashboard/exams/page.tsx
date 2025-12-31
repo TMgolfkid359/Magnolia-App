@@ -16,6 +16,35 @@ export default function ExamsPage() {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
 
+  const handleSubmitExam = () => {
+    if (!selectedExam || !user) return
+
+    const { score, passed } = examService.calculateScore(selectedExam, answers)
+    const completedAttempt: ExamAttempt = {
+      ...(attempt || {
+        id: `attempt-${Date.now()}`,
+        examId: selectedExam.id,
+        userId: user.id,
+        answers: {},
+        startedAt: new Date().toISOString(),
+      }),
+      answers,
+      score,
+      passed,
+      completedAt: new Date().toISOString(),
+    }
+
+    examService.saveAttempt(completedAttempt)
+    setAttempt(completedAttempt)
+    setTimeRemaining(null)
+  }
+
+  // Use ref to avoid dependency issues in timer useEffect
+  const submitExamRef = useRef(handleSubmitExam)
+  useEffect(() => {
+    submitExamRef.current = handleSubmitExam
+  }, [selectedExam, answers, attempt, user])
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/')
@@ -63,35 +92,6 @@ export default function ExamsPage() {
   const handleAnswerChange = (questionId: string, answer: string | string[]) => {
     setAnswers({ ...answers, [questionId]: answer })
   }
-
-  const handleSubmitExam = () => {
-    if (!selectedExam || !user) return
-
-    const { score, passed } = examService.calculateScore(selectedExam, answers)
-    const completedAttempt: ExamAttempt = {
-      ...(attempt || {
-        id: `attempt-${Date.now()}`,
-        examId: selectedExam.id,
-        userId: user.id,
-        answers: {},
-        startedAt: new Date().toISOString(),
-      }),
-      answers,
-      score,
-      passed,
-      completedAt: new Date().toISOString(),
-    }
-
-    examService.saveAttempt(completedAttempt)
-    setAttempt(completedAttempt)
-    setTimeRemaining(null)
-  }
-
-  // Use ref to avoid dependency issues in timer useEffect
-  const submitExamRef = useRef(handleSubmitExam)
-  useEffect(() => {
-    submitExamRef.current = handleSubmitExam
-  }, [selectedExam, answers, attempt, user])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
