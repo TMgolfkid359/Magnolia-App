@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X } from 'lucide-react'
+import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X, CheckCircle } from 'lucide-react'
 import { userService, PortalUser } from '@/services/userService'
 import { courseService, Course } from '@/services/courseService'
 import { videoService, VideoLesson } from '@/services/videoService'
