@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { userService } from '@/services/userService'
 
 export type UserRole = 'student' | 'instructor' | 'admin' | null
 export type User = {
@@ -33,18 +34,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string) => {
-    // TODO: Replace with actual authentication API call
-    // For now, using mock authentication
-    const mockUsers = [
-      { id: '1', name: 'John Student', email: 'student@example.com', role: 'student' as UserRole },
-      { id: '2', name: 'Jane Instructor', email: 'instructor@example.com', role: 'instructor' as UserRole },
-      { id: '3', name: 'Admin User', email: 'admin@magnolia.com', role: 'admin' as UserRole },
-    ]
-
-    const foundUser = mockUsers.find(u => u.email === email)
+    // Check userService for enrolled users
+    const allUsers = userService.getAllUsers()
+    const foundUser = allUsers.find(u => u.email === email && u.enrolled)
+    
+    // For demo, password is always 'password'
     if (foundUser && password === 'password') {
-      setUser(foundUser)
-      localStorage.setItem('user', JSON.stringify(foundUser))
+      const user = {
+        id: foundUser.id,
+        name: foundUser.name,
+        email: foundUser.email,
+        role: foundUser.role,
+      }
+      setUser(user)
+      localStorage.setItem('user', JSON.stringify(user))
+      // Update last login
+      userService.updateUser(foundUser.id, { lastLogin: new Date().toISOString() })
     } else {
       throw new Error('Invalid credentials')
     }

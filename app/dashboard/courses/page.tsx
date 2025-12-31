@@ -4,22 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { BookOpen, CheckCircle, Circle, FileText, Clock } from 'lucide-react'
-
-interface Course {
-  id: string
-  title: string
-  description: string
-  type: 'indoc' | 'ground' | 'preflight'
-  required: boolean
-  estimatedTime: string
-  completed: boolean
-  completionDate?: string
-  materials: {
-    type: 'document' | 'video' | 'quiz'
-    title: string
-    url?: string
-  }[]
-}
+import { courseService, Course } from '@/services/courseService'
 
 export default function CoursesPage() {
   const { user, loading: authLoading } = useAuth()
@@ -36,53 +21,9 @@ export default function CoursesPage() {
   useEffect(() => {
     if (authLoading || !user) return
     
-    // Load courses - in production, this would come from an API
-    const mockCourses: Course[] = [
-      {
-        id: 'indoc-1',
-        title: 'Indoctrination Course',
-        description: 'Complete this course before starting your flight training. This covers safety procedures, aircraft familiarization, and basic flight principles.',
-        type: 'indoc',
-        required: true,
-        estimatedTime: '2 hours',
-        completed: false,
-        materials: [
-          { type: 'document', title: 'Safety Manual', url: '/documents/safety-manual.pdf' },
-          { type: 'video', title: 'Aircraft Familiarization', url: '/videos/aircraft-familiarization' },
-          { type: 'document', title: 'Pre-Flight Checklist', url: '/documents/preflight-checklist.pdf' },
-          { type: 'quiz', title: 'Indoc Knowledge Test' },
-        ],
-      },
-      {
-        id: 'ground-1',
-        title: 'Ground School Basics',
-        description: 'Fundamental ground school concepts including aerodynamics, weather, and navigation.',
-        type: 'ground',
-        required: true,
-        estimatedTime: '4 hours',
-        completed: false,
-        materials: [
-          { type: 'video', title: 'Aerodynamics Fundamentals', url: '/videos/aerodynamics' },
-          { type: 'document', title: 'Weather Basics Guide', url: '/documents/weather-basics.pdf' },
-          { type: 'quiz', title: 'Ground School Quiz' },
-        ],
-      },
-      {
-        id: 'preflight-1',
-        title: 'Pre-Flight Inspection',
-        description: 'Learn how to perform a thorough pre-flight inspection of the aircraft.',
-        type: 'preflight',
-        required: true,
-        estimatedTime: '1 hour',
-        completed: true,
-        completionDate: '2024-01-15',
-        materials: [
-          { type: 'video', title: 'Pre-Flight Walkthrough', url: '/videos/preflight-walkthrough' },
-          { type: 'document', title: 'Inspection Checklist', url: '/documents/inspection-checklist.pdf' },
-        ],
-      },
-    ]
-    setCourses(mockCourses)
+    // Load courses from courseService
+    const allCourses = courseService.getAllCourses()
+    setCourses(allCourses)
   }, [user, authLoading])
 
   const handleCompleteCourse = (courseId: string) => {
