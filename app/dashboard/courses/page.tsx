@@ -15,57 +15,116 @@ export default function CoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [currentMaterialIndex, setCurrentMaterialIndex] = useState<number>(0)
 
-  // Check if course should be auto-completed
-  const checkCourseCompletion = (coursesToCheck: Course[]) => {
-    if (!user) return
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/')
+    }
+  }, [user, authLoading, router])
+
+  useEffect(() => {
+    if (authLoading || !user) return
     
-    const updatedCourses = coursesToCheck.map(course => {
-      if (course.completed) return course
-      
-      // Get all exams linked to this course
-      const courseExams = examService.getExamsByCourse(course.id)
-      const requiredExamIds = courseExams.map(e => e.id)
-      
-      // Check if all materials are viewed
-      const allMaterialsViewed = progressService.areAllMaterialsViewed(
-        course.id,
-        user.id,
-        course.materials.length
-      )
-      
-      // Check if all exams are passed
-      const allExamsPassed = progressService.areAllExamsCompleted(
-        course.id,
-        user.id,
-        requiredExamIds
-      )
-      
-      // Also check exam attempts to see if they passed
-      let examsActuallyPassed = true
-      if (requiredExamIds.length > 0) {
-        const userAttempts = examService.getUserAttempts(user.id)
-        examsActuallyPassed = requiredExamIds.every(examId => {
-          const attempts = userAttempts.filter(a => a.examId === examId && a.completedAt)
-          return attempts.some(a => a.passed === true)
-        })
-      }
-      
-      // Auto-complete if all materials viewed and all exams passed
-      if (allMaterialsViewed && allExamsPassed && examsActuallyPassed) {
-        const updated = {
-          ...course,
-          completed: true,
-          completionDate: new Date().toISOString().split('T')[0]
+    // Load courses from courseService
+    const allCourses = courseService.getAllCourses()
+    setCourses(allCourses)
+    
+    // Check and update course completion status
+    if (user) {
+      const updatedCourses = allCourses.map(course => {
+        if (course.completed) return course
+        
+        // Get all exams linked to this course
+        const courseExams = examService.getExamsByCourse(course.id)
+        const requiredExamIds = courseExams.map(e => e.id)
+        
+        // Check if all materials are viewed
+        const allMaterialsViewed = progressService.areAllMaterialsViewed(
+          course.id,
+          user.id,
+          course.materials.length
+        )
+        
+        // Check if all exams are passed
+        const allExamsPassed = progressService.areAllExamsCompleted(
+          course.id,
+          user.id,
+          requiredExamIds
+        )
+        
+        // Also check exam attempts to see if they passed
+        let examsActuallyPassed = true
+        if (requiredExamIds.length > 0) {
+          const userAttempts = examService.getUserAttempts(user.id)
+          examsActuallyPassed = requiredExamIds.every(examId => {
+            const attempts = userAttempts.filter(a => a.examId === examId && a.completedAt)
+            return attempts.some(a => a.passed === true)
+          })
         }
-        courseService.updateCourse(course.id, updated)
-        return updated
-      }
+        
+        // Auto-complete if all materials viewed and all exams passed
+        if (allMaterialsViewed && allExamsPassed && examsActuallyPassed) {
+          const updated = {
+            ...course,
+            completed: true,
+            completionDate: new Date().toISOString().split('T')[0]
+          }
+          courseService.updateCourse(course.id, updated)
+          return updated
+        }
+        
+        return course
+      })
       
-      return course
-    })
-    
-    setCourses(updatedCourses)
-  }
+      setCourses(updatedCourses)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading])
+
+  useEffect(() => {
+    if (user && selectedCourse) {
+      progressService.markMaterialViewed(selectedCourse.id, user.id, currentMaterialIndex)
+      // Check completion after marking as viewed
+      const allCourses = courseService.getAllCourses()
+      if (user) {
+        const updatedCourses = allCourses.map(course => {
+          if (course.completed) return course
+          
+          const courseExams = examService.getExamsByCourse(course.id)
+          const requiredExamIds = courseExams.map(e => e.id)
+          const allMaterialsViewed = progressService.areAllMaterialsViewed(
+            course.id,
+            user.id,
+            course.materials.length
+          )
+          const allExamsPassed = progressService.areAllExamsCompleted(
+            course.id,
+            user.id,
+            requiredExamIds
+          )
+          let examsActuallyPassed = true
+          if (requiredExamIds.length > 0) {
+            const userAttempts = examService.getUserAttempts(user.id)
+            examsActuallyPassed = requiredExamIds.every(examId => {
+              const attempts = userAttempts.filter(a => a.examId === examId && a.completedAt)
+              return attempts.some(a => a.passed === true)
+            })
+          }
+          if (allMaterialsViewed && allExamsPassed && examsActuallyPassed) {
+            const updated = {
+              ...course,
+              completed: true,
+              completionDate: new Date().toISOString().split('T')[0]
+            }
+            courseService.updateCourse(course.id, updated)
+            return updated
+          }
+          return course
+        })
+        setCourses(updatedCourses)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMaterialIndex, selectedCourse, user])
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -89,36 +148,41 @@ export default function CoursesPage() {
     
     // Reload courses to check completion
     const allCourses = courseService.getAllCourses()
-    checkCourseCompletion(allCourses)
+    const updatedCourses = allCourses.map(course => {
+      if (course.completed) return course
+      const courseExams = examService.getExamsByCourse(course.id)
+      const requiredExamIds = courseExams.map(e => e.id)
+      const allMaterialsViewed = progressService.areAllMaterialsViewed(
+        course.id,
+        user.id,
+        course.materials.length
+      )
+      const allExamsPassed = progressService.areAllExamsCompleted(
+        course.id,
+        user.id,
+        requiredExamIds
+      )
+      let examsActuallyPassed = true
+      if (requiredExamIds.length > 0) {
+        const userAttempts = examService.getUserAttempts(user.id)
+        examsActuallyPassed = requiredExamIds.every(examId => {
+          const attempts = userAttempts.filter(a => a.examId === examId && a.completedAt)
+          return attempts.some(a => a.passed === true)
+        })
+      }
+      if (allMaterialsViewed && allExamsPassed && examsActuallyPassed) {
+        const updated = {
+          ...course,
+          completed: true,
+          completionDate: new Date().toISOString().split('T')[0]
+        }
+        courseService.updateCourse(course.id, updated)
+        return updated
+      }
+      return course
+    })
+    setCourses(updatedCourses)
   }
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/')
-    }
-  }, [user, authLoading, router])
-
-  useEffect(() => {
-    if (authLoading || !user) return
-    
-    // Load courses from courseService
-    const allCourses = courseService.getAllCourses()
-    setCourses(allCourses)
-    
-    // Check and update course completion status
-    checkCourseCompletion(allCourses)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading])
-
-  useEffect(() => {
-    if (user && selectedCourse) {
-      progressService.markMaterialViewed(selectedCourse.id, user.id, currentMaterialIndex)
-      // Check completion after marking as viewed
-      const allCourses = courseService.getAllCourses()
-      checkCourseCompletion(allCourses)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMaterialIndex, selectedCourse, user])
 
   if (authLoading || !user) {
     return (
