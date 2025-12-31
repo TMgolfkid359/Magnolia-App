@@ -530,6 +530,99 @@ function CourseForm({
           />
         </div>
       </div>
+
+      {/* Course Materials Section */}
+      <div className="mt-6 border-t border-gray-200 pt-6">
+        <div className="flex justify-between items-center mb-4">
+          <label className="block text-sm font-medium text-gray-700">Course Materials</label>
+          <button
+            type="button"
+            onClick={() => {
+              const currentMaterials = formData.materials || []
+              setFormData({
+                ...formData,
+                materials: [...currentMaterials, { type: 'document', title: '', url: '' }],
+              })
+            }}
+            className="flex items-center space-x-1 text-sm text-magnolia-600 hover:text-magnolia-700 font-medium"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Material</span>
+          </button>
+        </div>
+        <div className="space-y-3">
+          {(formData.materials || []).map((material, index) => (
+            <div key={index} className="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+              <div className="flex-1 grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
+                  <select
+                    value={material.type}
+                    onChange={(e) => {
+                      const newMaterials = [...(formData.materials || [])]
+                      newMaterials[index] = { ...material, type: e.target.value as 'document' | 'video' | 'quiz' }
+                      setFormData({ ...formData, materials: newMaterials })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                  >
+                    <option value="document">Document</option>
+                    <option value="video">Video</option>
+                    <option value="quiz">Quiz</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Title *</label>
+                  <input
+                    type="text"
+                    value={material.title}
+                    onChange={(e) => {
+                      const newMaterials = [...(formData.materials || [])]
+                      newMaterials[index] = { ...material, title: e.target.value }
+                      setFormData({ ...formData, materials: newMaterials })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                    placeholder="Material title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    URL {material.type !== 'quiz' && '(optional)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={material.url || ''}
+                    onChange={(e) => {
+                      const newMaterials = [...(formData.materials || [])]
+                      newMaterials[index] = { ...material, url: e.target.value }
+                      setFormData({ ...formData, materials: newMaterials })
+                    }}
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                    placeholder={material.type === 'video' ? 'Video URL' : 'Document URL'}
+                    disabled={material.type === 'quiz'}
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const newMaterials = (formData.materials || []).filter((_, i) => i !== index)
+                  setFormData({ ...formData, materials: newMaterials })
+                }}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors mt-6"
+                title="Remove material"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          {(!formData.materials || formData.materials.length === 0) && (
+            <div className="text-center py-4 text-sm text-gray-500 border border-gray-200 rounded-lg bg-gray-50">
+              No materials added yet. Click "Add Material" to get started.
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="flex justify-end space-x-3 mt-4">
         <button
           onClick={onCancel}
