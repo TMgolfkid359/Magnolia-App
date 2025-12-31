@@ -299,19 +299,19 @@ export default function ExamsPage() {
                   {isStudent && lastAttempt && (
                     <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                       <div className="flex items-center space-x-3 mb-2">
-                        {lastAttempt.passed ? (
+                        {lastAttempt?.passed ? (
                           <CheckCircle className="h-5 w-5 text-green-500" />
                         ) : (
                           <XCircle className="h-5 w-5 text-red-500" />
                         )}
-                        <span className={`text-lg font-semibold ${lastAttempt.passed ? 'text-green-600' : 'text-red-600'}`}>
-                          {lastAttempt.passed ? 'Passed' : 'Failed'}
+                        <span className={`text-lg font-semibold ${lastAttempt?.passed ? 'text-green-600' : 'text-red-600'}`}>
+                          {lastAttempt?.passed ? 'Passed' : 'Failed'}
                         </span>
                         <span className="text-lg font-bold text-magnolia-600">
-                          Score: {lastAttempt.score}%
+                          Score: {lastAttempt?.score ?? 0}%
                         </span>
                       </div>
-                      {lastAttempt.completedAt && (
+                      {lastAttempt?.completedAt && (
                         <p className="text-sm text-gray-500">
                           Completed: {new Date(lastAttempt.completedAt).toLocaleString()}
                         </p>
