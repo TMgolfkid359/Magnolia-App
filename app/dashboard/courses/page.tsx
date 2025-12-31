@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { BookOpen, CheckCircle, Circle, FileText, Clock, Play, ArrowRight, X } from 'lucide-react'
 import { courseService, Course } from '@/services/courseService'
+import { progressService } from '@/services/progressService'
+import { examService } from '@/services/examService'
 
 export default function CoursesPage() {
   const { user, loading: authLoading } = useAuth()
@@ -25,18 +27,85 @@ export default function CoursesPage() {
     // Load courses from courseService
     const allCourses = courseService.getAllCourses()
     setCourses(allCourses)
+    
+    // Check and update course completion status
+    checkCourseCompletion(allCourses)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading])
 
-  const handleCompleteCourse = (courseId: string) => {
-    setCourses(courses.map(course => 
-      course.id === courseId 
-        ? { ...course, completed: true, completionDate: new Date().toISOString().split('T')[0] }
-        : course
-    ))
-    if (selectedCourse?.id === courseId) {
-      setSelectedCourse({ ...selectedCourse, completed: true, completionDate: new Date().toISOString().split('T')[0] })
-    }
+  // Check if course should be auto-completed
+  const checkCourseCompletion = (coursesToCheck: Course[]) => {
+    if (!user) return
+    
+    const updatedCourses = coursesToCheck.map(course => {
+      if (course.completed) return course
+      
+      // Get all exams linked to this course
+      const courseExams = examService.getExamsByCourse(course.id)
+      const requiredExamIds = courseExams.map(e => e.id)
+      
+      // Check if all materials are viewed
+      const allMaterialsViewed = progressService.areAllMaterialsViewed(
+        course.id,
+        user.id,
+        course.materials.length
+      )
+      
+      // Check if all exams are passed
+      const allExamsPassed = progressService.areAllExamsCompleted(
+        course.id,
+        user.id,
+        requiredExamIds
+      )
+      
+      // Also check exam attempts to see if they passed
+      let examsActuallyPassed = true
+      if (requiredExamIds.length > 0) {
+        const userAttempts = examService.getUserAttempts(user.id)
+        examsActuallyPassed = requiredExamIds.every(examId => {
+          const attempts = userAttempts.filter(a => a.examId === examId && a.completedAt)
+          return attempts.some(a => a.passed === true)
+        })
+      }
+      
+      // Auto-complete if all materials viewed and all exams passed
+      if (allMaterialsViewed && allExamsPassed && examsActuallyPassed) {
+        const updated = {
+          ...course,
+          completed: true,
+          completionDate: new Date().toISOString().split('T')[0]
+        }
+        courseService.updateCourse(course.id, updated)
+        return updated
+      }
+      
+      return course
+    })
+    
+    setCourses(updatedCourses)
   }
+
+  // Track material view when navigating
+  const handleMaterialView = (courseId: string, materialIndex: number) => {
+    if (!user) return
+    
+    // Mark material as viewed
+    progressService.markMaterialViewed(courseId, user.id, materialIndex)
+    
+    // Reload courses to check completion
+    const allCourses = courseService.getAllCourses()
+    checkCourseCompletion(allCourses)
+  }
+
+  // Effect to mark material as viewed when currentMaterialIndex changes
+  useEffect(() => {
+    if (user && selectedCourse) {
+      progressService.markMaterialViewed(selectedCourse.id, user.id, currentMaterialIndex)
+      // Check completion after marking as viewed
+      const allCourses = courseService.getAllCourses()
+      checkCourseCompletion(allCourses)
+    }
+  }, [currentMaterialIndex, selectedCourse, user])
 
   if (authLoading || !user) {
     return (
@@ -123,22 +192,18 @@ export default function CoursesPage() {
                       onClick={() => {
                         setSelectedCourse(course)
                         setCurrentMaterialIndex(0)
+                        // Mark first material as viewed when opening course
+                        if (user) {
+                          progressService.markMaterialViewed(course.id, user.id, 0)
+                        }
                       }}
-                      className="flex items-center space-x-2 text-magnolia-600 hover:text-magnolia-700 text-sm font-medium"
+                      className="bg-magnolia-800 text-white px-4 py-2 rounded-md hover:bg-magnolia-900 transition-colors flex items-center space-x-2"
                     >
-                      <span>View Course Materials</span>
+                      <span>Open Course</span>
                       <ArrowRight className="h-4 w-4" />
                     </button>
                   )}
                 </div>
-                {!course.completed && (
-                  <button
-                    onClick={() => handleCompleteCourse(course.id)}
-                    className="bg-magnolia-800 text-white px-4 py-2 rounded-md hover:bg-magnolia-900 transition-colors"
-                  >
-                    Mark as Complete
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -223,17 +288,52 @@ export default function CoursesPage() {
                 }
 
                 if (material.type === 'quiz') {
+                  // Find exams linked to this course
+                  const courseExams = examService.getExamsByCourse(selectedCourse.id)
+                  const userAttempts = user ? examService.getUserAttempts(user.id) : []
+                  
+                  // Check which exams are passed
+                  const passedExams = courseExams.filter(exam => {
+                    const attempts = userAttempts.filter(a => a.examId === exam.id && a.completedAt)
+                    return attempts.some(a => a.passed === true)
+                  })
+                  
                   return (
                     <div className="space-y-4">
                       <h3 className="text-xl font-semibold text-gray-900">{material.title}</h3>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                        <p className="text-blue-800 mb-4">This quiz is linked to an exam.</p>
-                        <a
-                          href="/dashboard/exams"
-                          className="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                        >
-                          Go to Exams
-                        </a>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <p className="text-blue-800 mb-4 text-center">This quiz is linked to an exam.</p>
+                        {courseExams.length > 0 && (
+                          <div className="space-y-2 mb-4">
+                            {courseExams.map(exam => {
+                              const attempts = userAttempts.filter(a => a.examId === exam.id && a.completedAt)
+                              const passed = attempts.some(a => a.passed === true)
+                              return (
+                                <div key={exam.id} className="flex items-center justify-between p-3 bg-white rounded border">
+                                  <span className="text-gray-700">{exam.title}</span>
+                                  {passed ? (
+                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                  ) : (
+                                    <Circle className="h-5 w-5 text-gray-300" />
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                        <div className="text-center">
+                          <a
+                            href="/dashboard/exams"
+                            className="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                          >
+                            Go to Exams
+                          </a>
+                        </div>
+                        {user && passedExams.length === courseExams.length && courseExams.length > 0 && (
+                          <div className="mt-4 text-center">
+                            <p className="text-green-600 font-medium">All exams completed! ✓</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
@@ -245,7 +345,13 @@ export default function CoursesPage() {
 
             <div className="flex justify-between items-center p-6 border-t border-gray-200 bg-gray-50">
               <button
-                onClick={() => setCurrentMaterialIndex(Math.max(0, currentMaterialIndex - 1))}
+                onClick={() => {
+                  const newIndex = Math.max(0, currentMaterialIndex - 1)
+                  setCurrentMaterialIndex(newIndex)
+                  if (user && selectedCourse) {
+                    progressService.markMaterialViewed(selectedCourse.id, user.id, newIndex)
+                  }
+                }}
                 disabled={currentMaterialIndex === 0}
                 className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
@@ -254,22 +360,39 @@ export default function CoursesPage() {
               </button>
 
               <div className="flex space-x-2">
-                {selectedCourse.materials.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentMaterialIndex(idx)}
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      idx === currentMaterialIndex
-                        ? 'bg-magnolia-600'
-                        : 'bg-gray-300 hover:bg-gray-400'
-                    }`}
-                    title={selectedCourse.materials[idx].title}
-                  />
-                ))}
+                {selectedCourse.materials.map((_, idx) => {
+                  const progress = user ? progressService.getCourseProgress(selectedCourse.id, user.id) : null
+                  const isViewed = progress?.viewedMaterials.includes(idx.toString()) || false
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setCurrentMaterialIndex(idx)
+                        if (user) {
+                          progressService.markMaterialViewed(selectedCourse.id, user.id, idx)
+                        }
+                      }}
+                      className={`w-3 h-3 rounded-full transition-colors ${
+                        idx === currentMaterialIndex
+                          ? 'bg-magnolia-600'
+                          : isViewed
+                          ? 'bg-green-400 hover:bg-green-500'
+                          : 'bg-gray-300 hover:bg-gray-400'
+                      }`}
+                      title={selectedCourse.materials[idx].title}
+                    />
+                  )
+                })}
               </div>
 
               <button
-                onClick={() => setCurrentMaterialIndex(Math.min(selectedCourse.materials.length - 1, currentMaterialIndex + 1))}
+                onClick={() => {
+                  const newIndex = Math.min(selectedCourse.materials.length - 1, currentMaterialIndex + 1)
+                  setCurrentMaterialIndex(newIndex)
+                  if (user && selectedCourse) {
+                    progressService.markMaterialViewed(selectedCourse.id, user.id, newIndex)
+                  }
+                }}
                 disabled={currentMaterialIndex === selectedCourse.materials.length - 1}
                 className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >

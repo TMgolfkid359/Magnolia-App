@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { FileText, Clock, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
 import { examService, Exam, ExamAttempt } from '@/services/examService'
+import { progressService } from '@/services/progressService'
 import Link from 'next/link'
 
 export default function ExamsPage() {
@@ -35,6 +36,12 @@ export default function ExamsPage() {
     }
 
     examService.saveAttempt(completedAttempt)
+    
+    // Mark exam as completed in progress service if passed
+    if (passed && selectedExam.courseId) {
+      progressService.markExamCompleted(selectedExam.courseId, user.id, selectedExam.id)
+    }
+    
     setAttempt(completedAttempt)
     setTimeRemaining(null)
   }
