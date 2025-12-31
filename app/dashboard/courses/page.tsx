@@ -107,14 +107,6 @@ export default function CoursesPage() {
     }
   }, [currentMaterialIndex, selectedCourse, user])
 
-  if (authLoading || !user) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magnolia-600"></div>
-      </div>
-    )
-  }
-
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'indoc':
@@ -126,6 +118,14 @@ export default function CoursesPage() {
       default:
         return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  if (authLoading || !user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magnolia-600"></div>
+      </div>
+    )
   }
 
   return (
