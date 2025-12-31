@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { fspApi, FlightSchedule } from '@/services/fspApi'
+import { userService } from '@/services/userService'
 import { Calendar, Clock, Plane, CheckCircle, XCircle, Grid3x3, List } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import CalendarView from '@/components/CalendarView'
@@ -33,12 +34,31 @@ export default function SchedulePage() {
     
     setLoading(true)
     try {
-      const data = user.role === 'instructor'
-        ? await fspApi.getInstructorSchedule(user.id)
-        : await fspApi.getStudentSchedule(user.id)
+      // Get user from userService to access FSP IDs
+      const portalUser = userService.getUserById(user.id)
+      
+      if (!portalUser) {
+        console.warn('User not found in userService')
+        setSchedules({ upcoming: [], past: [] })
+        return
+      }
+      
+      let data
+      
+      if (user.role === 'instructor') {
+        // Use FSP instructor ID if available, fallback to portal user ID
+        const fspInstructorId = portalUser.fspInstructorId || portalUser.id
+        data = await fspApi.getInstructorSchedule(fspInstructorId)
+      } else {
+        // Use FSP student ID if available, fallback to portal user ID
+        const fspStudentId = portalUser.fspStudentId || portalUser.id
+        data = await fspApi.getStudentSchedule(fspStudentId)
+      }
+      
       setSchedules(data)
     } catch (error) {
       console.error('Failed to load schedule:', error)
+      setSchedules({ upcoming: [], past: [] })
     } finally {
       setLoading(false)
     }

@@ -33,29 +33,143 @@ export interface StudentSchedule {
 }
 
 export const fspApi = {
-  // Get student schedule
-  async getStudentSchedule(studentId: string): Promise<StudentSchedule> {
+  // Get student schedule by FSP student ID
+  async getStudentSchedule(fspStudentId: string): Promise<StudentSchedule> {
+    // If no API key is configured, return mock data
+    if (!FSP_API_KEY || FSP_API_KEY === '') {
+      console.warn('FSP API key not configured, using mock data')
+      return getMockSchedule(fspStudentId)
+    }
+
     try {
-      // TODO: Replace with actual FSP API endpoint
-      // Example endpoint: GET /api/v1/students/{studentId}/schedule
-      const response = await apiClient.get(`/api/v1/students/${studentId}/schedule`)
-      return response.data
-    } catch (error) {
+      // Adjust endpoint based on FSP API documentation
+      // Common endpoints: /api/v1/students/{id}/schedule, /api/v1/schedules?student_id={id}
+      const response = await apiClient.get(`/api/v1/students/${fspStudentId}/schedule`)
+      
+      // Transform FSP response to match our interface
+      // FSP API response format may vary - adjust based on actual API response
+      const schedules: any[] = response.data.schedules || response.data.data || response.data || []
+      
+      const now = new Date()
+      const upcoming: FlightSchedule[] = []
+      const past: FlightSchedule[] = []
+      
+      schedules.forEach((schedule: any) => {
+        const scheduleDate = new Date(schedule.date || schedule.scheduled_date || schedule.start_date)
+        const transformed: FlightSchedule = {
+          id: schedule.id || schedule.schedule_id || schedule.reservation_id || String(Date.now()),
+          studentId: schedule.student_id || schedule.studentId || fspStudentId,
+          instructorId: schedule.instructor_id || schedule.instructorId,
+          aircraftId: schedule.aircraft_id || schedule.aircraftId || schedule.aircraft || schedule.tail_number || 'N/A',
+          startTime: schedule.start_time || schedule.startTime || schedule.start || '00:00',
+          endTime: schedule.end_time || schedule.endTime || schedule.end || '00:00',
+          date: schedule.date || schedule.scheduled_date || schedule.start_date || new Date().toISOString().split('T')[0],
+          type: (schedule.type || schedule.flight_type || schedule.reservation_type || 'lesson').toLowerCase(),
+          status: (schedule.status || 'scheduled').toLowerCase(),
+          notes: schedule.notes || schedule.remarks || schedule.description,
+        }
+        
+        if (scheduleDate >= now && transformed.status !== 'completed' && transformed.status !== 'cancelled') {
+          upcoming.push(transformed)
+        } else {
+          past.push(transformed)
+        }
+      })
+      
+      // Sort upcoming by date, past by date descending
+      upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      
+      return { upcoming, past }
+    } catch (error: any) {
       console.error('Error fetching student schedule:', error)
-      // Return mock data for development
-      return getMockSchedule(studentId)
+      
+      // If 404 or no data, return empty arrays instead of mock data in production
+      if (error.response?.status === 404) {
+        console.warn(`No schedule found for student ${fspStudentId}`)
+        return { upcoming: [], past: [] }
+      }
+      
+      // If unauthorized, return empty (don't expose API errors to users)
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.error('FSP API authentication failed. Check your API key.')
+        return { upcoming: [], past: [] }
+      }
+      
+      // In development, return mock data if API fails
+      // In production, you might want to return empty arrays
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Falling back to mock data due to API error')
+        return getMockSchedule(fspStudentId)
+      }
+      
+      return { upcoming: [], past: [] }
     }
   },
 
   // Get instructor schedule
-  async getInstructorSchedule(instructorId: string): Promise<StudentSchedule> {
+  async getInstructorSchedule(fspInstructorId: string): Promise<StudentSchedule> {
+    // If no API key is configured, return mock data
+    if (!FSP_API_KEY || FSP_API_KEY === '') {
+      console.warn('FSP API key not configured, using mock data')
+      return getMockSchedule(fspInstructorId)
+    }
+
     try {
-      // TODO: Replace with actual FSP API endpoint
-      const response = await apiClient.get(`/api/v1/instructors/${instructorId}/schedule`)
-      return response.data
-    } catch (error) {
+      const response = await apiClient.get(`/api/v1/instructors/${fspInstructorId}/schedule`)
+      
+      // Similar transformation as above
+      const schedules: any[] = response.data.schedules || response.data.data || response.data || []
+      const now = new Date()
+      const upcoming: FlightSchedule[] = []
+      const past: FlightSchedule[] = []
+      
+      schedules.forEach((schedule: any) => {
+        const scheduleDate = new Date(schedule.date || schedule.scheduled_date || schedule.start_date)
+        const transformed: FlightSchedule = {
+          id: schedule.id || schedule.schedule_id || schedule.reservation_id || String(Date.now()),
+          studentId: schedule.student_id || schedule.studentId,
+          instructorId: schedule.instructor_id || schedule.instructorId || fspInstructorId,
+          aircraftId: schedule.aircraft_id || schedule.aircraftId || schedule.aircraft || schedule.tail_number || 'N/A',
+          startTime: schedule.start_time || schedule.startTime || schedule.start || '00:00',
+          endTime: schedule.end_time || schedule.endTime || schedule.end || '00:00',
+          date: schedule.date || schedule.scheduled_date || schedule.start_date || new Date().toISOString().split('T')[0],
+          type: (schedule.type || schedule.flight_type || schedule.reservation_type || 'lesson').toLowerCase(),
+          status: (schedule.status || 'scheduled').toLowerCase(),
+          notes: schedule.notes || schedule.remarks || schedule.description,
+        }
+        
+        if (scheduleDate >= now && transformed.status !== 'completed' && transformed.status !== 'cancelled') {
+          upcoming.push(transformed)
+        } else {
+          past.push(transformed)
+        }
+      })
+      
+      // Sort upcoming by date, past by date descending
+      upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      
+      return { upcoming, past }
+    } catch (error: any) {
       console.error('Error fetching instructor schedule:', error)
-      return getMockSchedule(instructorId)
+      
+      if (error.response?.status === 404) {
+        console.warn(`No schedule found for instructor ${fspInstructorId}`)
+        return { upcoming: [], past: [] }
+      }
+      
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.error('FSP API authentication failed. Check your API key.')
+        return { upcoming: [], past: [] }
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Falling back to mock data due to API error')
+        return getMockSchedule(fspInstructorId)
+      }
+      
+      return { upcoming: [], past: [] }
     }
   },
 

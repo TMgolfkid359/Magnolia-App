@@ -265,7 +265,18 @@ export default function AdminPage() {
 }
 
 // Users Tab Component
-function UsersTab({ users, onRoleChange }: { users: PortalUser[]; onRoleChange: (id: string, role: 'student' | 'instructor' | 'admin') => void }) {
+function UsersTab({ 
+  users, 
+  onRoleChange,
+  onUsersUpdate 
+}: { 
+  users: PortalUser[]
+  onRoleChange: (id: string, role: 'student' | 'instructor' | 'admin') => void
+  onUsersUpdate?: () => void
+}) {
+  const [editingFspId, setEditingFspId] = useState<{ userId: string; type: 'student' | 'instructor' } | null>(null)
+  const [fspIdValue, setFspIdValue] = useState('')
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin':
@@ -279,6 +290,34 @@ function UsersTab({ users, onRoleChange }: { users: PortalUser[]; onRoleChange: 
     }
   }
 
+  const handleEditFspId = (user: PortalUser, type: 'student' | 'instructor') => {
+    setEditingFspId({ userId: user.id, type })
+    setFspIdValue(type === 'student' ? (user.fspStudentId || '') : (user.fspInstructorId || ''))
+  }
+
+  const handleSaveFspId = () => {
+    if (!editingFspId) return
+    
+    const { userId, type } = editingFspId
+    if (type === 'student') {
+      userService.updateUserFspId(userId, fspIdValue || undefined)
+    } else {
+      userService.updateUserFspId(userId, undefined, fspIdValue || undefined)
+    }
+    
+    setEditingFspId(null)
+    setFspIdValue('')
+    // Trigger parent component to reload users
+    if (onUsersUpdate) {
+      onUsersUpdate()
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingFspId(null)
+    setFspIdValue('')
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Enrolled Users ({users.filter(u => u.enrolled).length})</h2>
@@ -286,35 +325,124 @@ function UsersTab({ users, onRoleChange }: { users: PortalUser[]; onRoleChange: 
         {users.filter(u => u.enrolled).map((user) => (
           <div
             key={user.id}
-            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            <div className="flex-1">
-              <div className="flex items-center space-x-3">
-                <Users className="h-5 w-5 text-magnolia-600" />
-                <div>
-                  <h3 className="font-semibold text-gray-900">{user.name}</h3>
-                  <p className="text-sm text-gray-600">{user.email}</p>
-                  {user.enrollmentDate && (
-                    <p className="text-xs text-gray-500">
-                      Enrolled: {new Date(user.enrollmentDate).toLocaleDateString()}
-                    </p>
-                  )}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3">
+                  <Users className="h-5 w-5 text-magnolia-600" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{user.name}</h3>
+                    <p className="text-sm text-gray-600">{user.email}</p>
+                    {user.enrollmentDate && (
+                      <p className="text-xs text-gray-500">
+                        Enrolled: {new Date(user.enrollmentDate).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
+              <div className="flex items-center space-x-4">
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
+                  {user.role}
+                </span>
+                <select
+                  value={user.role}
+                  onChange={(e) => onRoleChange(user.id, e.target.value as 'student' | 'instructor' | 'admin')}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600 focus:border-transparent text-gray-900"
+                >
+                  <option value="student">Student</option>
+                  <option value="instructor">Instructor</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(user.role)}`}>
-                {user.role}
-              </span>
-              <select
-                value={user.role}
-                onChange={(e) => onRoleChange(user.id, e.target.value as 'student' | 'instructor' | 'admin')}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600 focus:border-transparent text-gray-900"
-              >
-                <option value="student">Student</option>
-                <option value="instructor">Instructor</option>
-                <option value="admin">Admin</option>
-              </select>
+            
+            {/* FSP ID Management */}
+            <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+              <div className="text-xs font-medium text-gray-700 mb-2">Flight Schedule Pro IDs:</div>
+              
+              {user.role === 'student' && (
+                <div className="flex items-center space-x-2">
+                  <label className="text-xs text-gray-600 w-20">Student ID:</label>
+                  {editingFspId?.userId === user.id && editingFspId.type === 'student' ? (
+                    <div className="flex-1 flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={fspIdValue}
+                        onChange={(e) => setFspIdValue(e.target.value)}
+                        className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
+                        placeholder="Enter FSP Student ID"
+                      />
+                      <button
+                        onClick={handleSaveFspId}
+                        className="px-2 py-1 text-xs bg-magnolia-600 text-white rounded-md hover:bg-magnolia-700"
+                      >
+                        <Save className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center space-x-2">
+                      <span className="text-xs text-gray-600 flex-1">
+                        {user.fspStudentId || 'Not set'}
+                      </span>
+                      <button
+                        onClick={() => handleEditFspId(user, 'student')}
+                        className="px-2 py-1 text-xs text-magnolia-600 hover:bg-magnolia-50 rounded-md"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {(user.role === 'instructor' || user.role === 'admin') && (
+                <div className="flex items-center space-x-2">
+                  <label className="text-xs text-gray-600 w-20">Instructor ID:</label>
+                  {editingFspId?.userId === user.id && editingFspId.type === 'instructor' ? (
+                    <div className="flex-1 flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={fspIdValue}
+                        onChange={(e) => setFspIdValue(e.target.value)}
+                        className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
+                        placeholder="Enter FSP Instructor ID"
+                      />
+                      <button
+                        onClick={handleSaveFspId}
+                        className="px-2 py-1 text-xs bg-magnolia-600 text-white rounded-md hover:bg-magnolia-700"
+                      >
+                        <Save className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center space-x-2">
+                      <span className="text-xs text-gray-600 flex-1">
+                        {user.fspInstructorId || 'Not set'}
+                      </span>
+                      <button
+                        onClick={() => handleEditFspId(user, 'instructor')}
+                        className="px-2 py-1 text-xs text-magnolia-600 hover:bg-magnolia-50 rounded-md"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ))}

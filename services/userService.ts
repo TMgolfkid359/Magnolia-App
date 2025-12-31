@@ -9,6 +9,8 @@ export interface PortalUser {
   enrolled: boolean
   enrollmentDate?: string
   lastLogin?: string
+  fspStudentId?: string  // Flight Schedule Pro student ID
+  fspInstructorId?: string  // Flight Schedule Pro instructor ID
 }
 
 const STORAGE_KEY = 'magnolia_users'
@@ -118,6 +120,14 @@ export const userService = {
   // Get enrolled users only
   getEnrolledUsers(): PortalUser[] {
     return this.getAllUsers().filter(u => u.enrolled)
+  },
+
+  // Update FSP IDs for a user
+  updateUserFspId(userId: string, fspStudentId?: string, fspInstructorId?: string): PortalUser | null {
+    const updates: Partial<PortalUser> = {}
+    if (fspStudentId !== undefined) updates.fspStudentId = fspStudentId
+    if (fspInstructorId !== undefined) updates.fspInstructorId = fspInstructorId
+    return this.updateUser(userId, updates)
   },
 }
 
