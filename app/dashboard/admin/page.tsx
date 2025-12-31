@@ -1228,6 +1228,18 @@ function ExamsTab({
                   placeholder="Optional"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attempts Allowed (optional)</label>
+                <input
+                  type="number"
+                  value={formData.attemptsAllowed || ''}
+                  onChange={(e) => setFormData({ ...formData, attemptsAllowed: e.target.value ? parseInt(e.target.value) : undefined })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
+                  placeholder="Unlimited if empty"
+                  min="1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Leave empty for unlimited attempts</p>
+              </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
@@ -1398,6 +1410,8 @@ function ExamsTab({
                     <span>Course: {courses.find(c => c.id === exam.courseId)?.title || 'Unknown'}</span>
                   )}
                   {exam.timeLimit && <span>Time Limit: {exam.timeLimit} min</span>}
+                  {exam.attemptsAllowed && <span>Attempts: {exam.attemptsAllowed}</span>}
+                  {!exam.attemptsAllowed && <span>Attempts: Unlimited</span>}
                 </div>
               </div>
               <div className="flex items-center space-x-2 ml-4">

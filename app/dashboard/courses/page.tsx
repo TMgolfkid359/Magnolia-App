@@ -338,27 +338,108 @@ export default function CoursesPage() {
                 }
 
                 if (material.type === 'document') {
+                  // Check if file is PowerPoint
+                  const isPowerPoint = material.fileType?.includes('powerpoint') || 
+                                      material.fileType?.includes('presentation') ||
+                                      material.fileName?.toLowerCase().endsWith('.ppt') ||
+                                      material.fileName?.toLowerCase().endsWith('.pptx') ||
+                                      material.url?.toLowerCase().endsWith('.ppt') ||
+                                      material.url?.toLowerCase().endsWith('.pptx')
+                  
+                  // Check if file is PDF
+                  const isPDF = material.fileType === 'application/pdf' ||
+                               material.fileName?.toLowerCase().endsWith('.pdf') ||
+                               material.url?.toLowerCase().endsWith('.pdf')
+
                   return (
                     <div className="space-y-4">
                       <h3 className="text-xl font-semibold text-gray-900">{material.title}</h3>
                       {material.fileData ? (
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
-                          <iframe
-                            src={material.fileData}
-                            className="w-full"
-                            style={{ height: 'calc(100vh - 250px)' }}
-                            title={material.title}
-                          ></iframe>
-                        </div>
+                        isPowerPoint ? (
+                          // PowerPoint files: show download button (base64 files can't be viewed online)
+                          <div className="border border-gray-200 rounded-lg p-8 text-center">
+                            <FileText className="h-16 w-16 mx-auto mb-4 text-magnolia-600" />
+                            <p className="text-gray-700 mb-2 font-medium">{material.fileName || 'PowerPoint Presentation'}</p>
+                            <p className="text-sm text-gray-500 mb-6">PowerPoint files cannot be displayed directly in the browser. Please download to view.</p>
+                            <a
+                              href={material.fileData}
+                              download={material.fileName || 'presentation.pptx'}
+                              className="inline-flex items-center justify-center px-6 py-3 bg-magnolia-800 text-white rounded-md hover:bg-magnolia-900 transition-colors"
+                            >
+                              <ArrowRight className="h-4 w-4 mr-2" />
+                              Download PowerPoint File
+                            </a>
+                          </div>
+                        ) : isPDF ? (
+                          // PDF files: display in iframe
+                          <div className="border border-gray-200 rounded-lg overflow-hidden">
+                            <iframe
+                              src={material.fileData}
+                              className="w-full"
+                              style={{ height: 'calc(100vh - 250px)' }}
+                              title={material.title}
+                            ></iframe>
+                          </div>
+                        ) : (
+                          // Other file types: download option
+                          <div className="border border-gray-200 rounded-lg p-8 text-center">
+                            <FileText className="h-16 w-16 mx-auto mb-4 text-magnolia-600" />
+                            <p className="text-gray-700 mb-2 font-medium">{material.fileName || 'Document'}</p>
+                            <a
+                              href={material.fileData}
+                              download={material.fileName || 'document'}
+                              className="inline-flex items-center justify-center px-6 py-3 bg-magnolia-800 text-white rounded-md hover:bg-magnolia-900 transition-colors"
+                            >
+                              <ArrowRight className="h-4 w-4 mr-2" />
+                              Download File
+                            </a>
+                          </div>
+                        )
                       ) : material.url ? (
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
-                          <iframe
-                            src={material.url}
-                            className="w-full"
-                            style={{ height: 'calc(100vh - 250px)' }}
-                            title={material.title}
-                          ></iframe>
-                        </div>
+                        isPowerPoint ? (
+                          // PowerPoint URL: show embedded viewer and download option
+                          <div className="space-y-4">
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                              <iframe
+                                src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(material.url)}`}
+                                className="w-full"
+                                style={{ height: 'calc(100vh - 350px)', minHeight: '600px' }}
+                                title={material.title}
+                                frameBorder="0"
+                              ></iframe>
+                            </div>
+                            <div className="flex justify-center">
+                              <a
+                                href={material.url}
+                                download
+                                className="inline-flex items-center justify-center px-6 py-3 bg-magnolia-800 text-white rounded-md hover:bg-magnolia-900 transition-colors"
+                              >
+                                <ArrowRight className="h-4 w-4 mr-2" />
+                                Download PowerPoint File
+                              </a>
+                            </div>
+                          </div>
+                        ) : isPDF ? (
+                          // PDF URL: display in iframe
+                          <div className="border border-gray-200 rounded-lg overflow-hidden">
+                            <iframe
+                              src={material.url}
+                              className="w-full"
+                              style={{ height: 'calc(100vh - 250px)' }}
+                              title={material.title}
+                            ></iframe>
+                          </div>
+                        ) : (
+                          // Other URL: try iframe, fallback to link
+                          <div className="border border-gray-200 rounded-lg overflow-hidden">
+                            <iframe
+                              src={material.url}
+                              className="w-full"
+                              style={{ height: 'calc(100vh - 250px)' }}
+                              title={material.title}
+                            ></iframe>
+                          </div>
+                        )
                       ) : (
                         <div className="border border-gray-200 rounded-lg p-12 text-center text-gray-500">
                           <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />

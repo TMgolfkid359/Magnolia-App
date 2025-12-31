@@ -85,12 +85,24 @@ export default function ExamsPage() {
   }, [selectedExam?.id, attempt?.completedAt])
 
   const handleStartExam = (exam: Exam) => {
+    if (!user) return
+    
+    // Check if user has exceeded attempts allowed
+    if (exam.attemptsAllowed) {
+      const userAttempts = examService.getUserAttempts(user.id, exam.id)
+      const completedAttempts = userAttempts.filter(a => a.completedAt)
+      if (completedAttempts.length >= exam.attemptsAllowed) {
+        alert(`You have reached the maximum number of attempts (${exam.attemptsAllowed}) for this exam.`)
+        return
+      }
+    }
+    
     setSelectedExam(exam)
     setAnswers({})
     setAttempt({
       id: `attempt-${Date.now()}`,
       examId: exam.id,
-      userId: user?.id || '',
+      userId: user.id,
       answers: {},
       startedAt: new Date().toISOString(),
     })
@@ -293,6 +305,11 @@ export default function ExamsPage() {
                     <span>{exam.questions.length} questions</span>
                     <span>Passing score: {exam.passingScore}%</span>
                     {exam.timeLimit && <span>Time limit: {exam.timeLimit} minutes</span>}
+                    {exam.attemptsAllowed ? (
+                      <span>Attempts allowed: {exam.attemptsAllowed}</span>
+                    ) : (
+                      <span>Attempts: Unlimited</span>
+                    )}
                   </div>
                   
                   {/* Show results for students */}
@@ -326,14 +343,33 @@ export default function ExamsPage() {
                 </div>
                 
                 {/* Only show start/retake button for non-students */}
-                {!isStudent && (
-                  <button
-                    onClick={() => handleStartExam(exam)}
-                    className="ml-4 px-4 py-2 bg-magnolia-800 text-white rounded-md hover:bg-magnolia-900 transition-colors"
-                  >
-                    {lastAttempt ? 'Retake Exam' : 'Start Exam'}
-                  </button>
-                )}
+                {!isStudent && (() => {
+                  const canRetake = !exam.attemptsAllowed || completedAttempts.length < exam.attemptsAllowed
+                  return (
+                    <div className="ml-4 flex flex-col items-end space-y-2">
+                      {canRetake ? (
+                        <button
+                          onClick={() => handleStartExam(exam)}
+                          className="px-4 py-2 bg-magnolia-800 text-white rounded-md hover:bg-magnolia-900 transition-colors"
+                        >
+                          {lastAttempt ? 'Retake Exam' : 'Start Exam'}
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="px-4 py-2 bg-gray-300 text-gray-500 rounded-md cursor-not-allowed"
+                        >
+                          Max Attempts Reached
+                        </button>
+                      )}
+                      {exam.attemptsAllowed && (
+                        <span className="text-xs text-gray-500">
+                          {completedAttempts.length} / {exam.attemptsAllowed} attempts used
+                        </span>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             </div>
           )
