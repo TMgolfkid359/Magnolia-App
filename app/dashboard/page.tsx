@@ -177,7 +177,7 @@ export default function SchedulePage() {
       )}
 
       {/* List View */}
-      {viewMode === 'list' && (
+      {viewMode === 'list' && schedules && (
         <>
 
       {/* Upcoming Flights */}
@@ -295,7 +295,7 @@ export default function SchedulePage() {
           </div>
         )}
       </div>
-      </>
+        </>
       )}
     </div>
   )
