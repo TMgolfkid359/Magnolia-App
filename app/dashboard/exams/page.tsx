@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { FileText, Clock, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
@@ -35,32 +35,18 @@ export default function ExamsPage() {
         setTimeRemaining((prev) => {
           if (prev === null || prev <= 1) {
             clearInterval(interval)
-            if (selectedExam && user) {
-              const { score, passed } = examService.calculateScore(selectedExam, answers)
-              const completedAttempt: ExamAttempt = {
-                ...(attempt || {
-                  id: `attempt-${Date.now()}`,
-                  examId: selectedExam.id,
-                  userId: user.id,
-                  answers: {},
-                  startedAt: new Date().toISOString(),
-                }),
-                answers,
-                score,
-                passed,
-                completedAt: new Date().toISOString(),
-              }
-              examService.saveAttempt(completedAttempt)
-              setAttempt(completedAttempt)
-            }
+            // Auto-submit when time runs out
+            submitExamRef.current()
             return 0
           }
           return prev - 1
         })
       }, 1000)
       return () => clearInterval(interval)
+    } else if (!selectedExam || attempt?.completedAt) {
+      setTimeRemaining(null)
     }
-  }, [selectedExam, attempt, answers, user])
+  }, [selectedExam?.id, attempt?.completedAt])
 
   const handleStartExam = (exam: Exam) => {
     setSelectedExam(exam)
@@ -100,6 +86,12 @@ export default function ExamsPage() {
     setAttempt(completedAttempt)
     setTimeRemaining(null)
   }
+
+  // Use ref to avoid dependency issues in timer useEffect
+  const submitExamRef = useRef(handleSubmitExam)
+  useEffect(() => {
+    submitExamRef.current = handleSubmitExam
+  }, [selectedExam, answers, attempt, user])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
