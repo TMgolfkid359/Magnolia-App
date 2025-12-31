@@ -483,7 +483,6 @@ export default function CoursesPage() {
               </button>
             </div>
           </div>
-        </div>
       )}
 
       {/* Progress Summary */}
