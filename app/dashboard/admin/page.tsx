@@ -309,7 +309,7 @@ function UsersTab({ users, onRoleChange }: { users: PortalUser[]; onRoleChange: 
               <select
                 value={user.role}
                 onChange={(e) => onRoleChange(user.id, e.target.value as 'student' | 'instructor' | 'admin')}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600 focus:border-transparent"
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600 focus:border-transparent text-gray-900"
               >
                 <option value="student">Student</option>
                 <option value="instructor">Instructor</option>
@@ -482,7 +482,7 @@ function CourseForm({
             type="text"
             value={formData.title || ''}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
           />
         </div>
         <div>
@@ -490,7 +490,7 @@ function CourseForm({
           <select
             value={formData.type || 'ground'}
             onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
           >
             <option value="indoc">Indoc</option>
             <option value="ground">Ground</option>
@@ -504,7 +504,7 @@ function CourseForm({
             type="text"
             value={formData.estimatedTime || ''}
             onChange={(e) => setFormData({ ...formData, estimatedTime: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
             placeholder="2 hours"
           />
         </div>
@@ -526,7 +526,7 @@ function CourseForm({
             value={formData.description || ''}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
           />
         </div>
       </div>
@@ -563,7 +563,7 @@ function CourseForm({
                       newMaterials[index] = { ...material, type: e.target.value as 'document' | 'video' | 'quiz' }
                       setFormData({ ...formData, materials: newMaterials })
                     }}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                   >
                     <option value="document">Document</option>
                     <option value="video">Video</option>
@@ -580,7 +580,7 @@ function CourseForm({
                       newMaterials[index] = { ...material, title: e.target.value }
                       setFormData({ ...formData, materials: newMaterials })
                     }}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                     placeholder="Material title"
                   />
                 </div>
@@ -627,7 +627,7 @@ function CourseForm({
                           newMaterials[index] = { ...material, url: e.target.value, fileData: undefined, fileName: undefined }
                           setFormData({ ...formData, materials: newMaterials })
                         }}
-                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                         placeholder="Or enter document URL"
                       />
                     </div>
@@ -640,7 +640,7 @@ function CourseForm({
                         newMaterials[index] = { ...material, url: e.target.value }
                         setFormData({ ...formData, materials: newMaterials })
                       }}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                       placeholder={material.type === 'video' ? 'Video URL' : 'URL'}
                       disabled={material.type === 'quiz'}
                     />
@@ -780,7 +780,7 @@ function VideosTab({
                 type="text"
                 value={formData.title || ''}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
               />
             </div>
             <div>
@@ -788,7 +788,7 @@ function VideosTab({
               <select
                 value={formData.category || 'ground'}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
               >
                 <option value="ground">Ground</option>
                 <option value="flight">Flight</option>
@@ -802,7 +802,7 @@ function VideosTab({
                 type="text"
                 value={formData.duration || ''}
                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                 placeholder="45:30"
               />
             </div>
@@ -812,7 +812,7 @@ function VideosTab({
                 type="date"
                 value={formData.date || ''}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
               />
             </div>
             <div>
@@ -821,7 +821,7 @@ function VideosTab({
                 type="text"
                 value={formData.instructor || ''}
                 onChange={(e) => setFormData({ ...formData, instructor: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
               />
             </div>
             <div className="col-span-2">
@@ -830,7 +830,7 @@ function VideosTab({
                 type="text"
                 value={formData.videoUrl || ''}
                 onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                 placeholder="https://www.youtube.com/embed/VIDEO_ID"
               />
             </div>
@@ -840,7 +840,7 @@ function VideosTab({
                 value={formData.description || ''}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
               />
             </div>
           </div>
@@ -1013,7 +1013,7 @@ function ExamsTab({
                   type="text"
                   value={formData.title || ''}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                 />
               </div>
               <div>
@@ -1021,7 +1021,7 @@ function ExamsTab({
                 <select
                   value={formData.courseId || ''}
                   onChange={(e) => setFormData({ ...formData, courseId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                 >
                   <option value="">None</option>
                   {courses.map(course => (
@@ -1035,7 +1035,7 @@ function ExamsTab({
                   type="number"
                   value={formData.passingScore || 70}
                   onChange={(e) => setFormData({ ...formData, passingScore: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                   min="0"
                   max="100"
                 />
@@ -1046,7 +1046,7 @@ function ExamsTab({
                   type="number"
                   value={formData.timeLimit || ''}
                   onChange={(e) => setFormData({ ...formData, timeLimit: e.target.value ? parseInt(e.target.value) : undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                   placeholder="Optional"
                 />
               </div>
@@ -1056,7 +1056,7 @@ function ExamsTab({
                   value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                 />
               </div>
             </div>
@@ -1090,7 +1090,7 @@ function ExamsTab({
                           type="text"
                           value={question.question}
                           onChange={(e) => updateQuestion(question.id, { question: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
@@ -1099,7 +1099,7 @@ function ExamsTab({
                           <select
                             value={question.type}
                             onChange={(e) => updateQuestion(question.id, { type: e.target.value as any })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                           >
                             <option value="multiple-choice">Multiple Choice</option>
                             <option value="true-false">True/False</option>
@@ -1112,7 +1112,7 @@ function ExamsTab({
                             type="number"
                             value={question.points}
                             onChange={(e) => updateQuestion(question.id, { points: parseInt(e.target.value) })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                             min="1"
                           />
                         </div>
@@ -1130,7 +1130,7 @@ function ExamsTab({
                                   newOptions[optIndex] = e.target.value
                                   updateQuestion(question.id, { options: newOptions })
                                 }}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600"
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                                 placeholder={`Option ${optIndex + 1}`}
                               />
                               <input
@@ -1152,7 +1152,7 @@ function ExamsTab({
                             <select
                               value={question.correctAnswer as string}
                               onChange={(e) => updateQuestion(question.id, { correctAnswer: e.target.value })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                             >
                               <option value="true">True</option>
                               <option value="false">False</option>
@@ -1162,7 +1162,7 @@ function ExamsTab({
                               type="text"
                               value={question.correctAnswer as string}
                               onChange={(e) => updateQuestion(question.id, { correctAnswer: e.target.value })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                             />
                           )}
                         </div>

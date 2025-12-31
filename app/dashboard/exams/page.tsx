@@ -215,7 +215,7 @@ export default function ExamsPage() {
                     type="text"
                     value={(answers[question.id] as string) || ''}
                     onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
                     placeholder="Your answer..."
                   />
                 )}
