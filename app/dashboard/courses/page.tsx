@@ -15,12 +15,6 @@ export default function CoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [currentMaterialIndex, setCurrentMaterialIndex] = useState<number>(0)
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/')
-    }
-  }, [user, authLoading, router])
-
   // Check if course should be auto-completed
   const checkCourseCompletion = (coursesToCheck: Course[]) => {
     if (!user) return
@@ -73,17 +67,18 @@ export default function CoursesPage() {
     setCourses(updatedCourses)
   }
 
-  useEffect(() => {
-    if (authLoading || !user) return
-    
-    // Load courses from courseService
-    const allCourses = courseService.getAllCourses()
-    setCourses(allCourses)
-    
-    // Check and update course completion status
-    checkCourseCompletion(allCourses)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading])
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'indoc':
+        return 'bg-blue-100 text-blue-800'
+      case 'ground':
+        return 'bg-green-100 text-green-800'
+      case 'preflight':
+        return 'bg-purple-100 text-purple-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
 
   // Track material view when navigating
   const handleMaterialView = (courseId: string, materialIndex: number) => {
@@ -97,7 +92,24 @@ export default function CoursesPage() {
     checkCourseCompletion(allCourses)
   }
 
-  // Effect to mark material as viewed when currentMaterialIndex changes
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/')
+    }
+  }, [user, authLoading, router])
+
+  useEffect(() => {
+    if (authLoading || !user) return
+    
+    // Load courses from courseService
+    const allCourses = courseService.getAllCourses()
+    setCourses(allCourses)
+    
+    // Check and update course completion status
+    checkCourseCompletion(allCourses)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading])
+
   useEffect(() => {
     if (user && selectedCourse) {
       progressService.markMaterialViewed(selectedCourse.id, user.id, currentMaterialIndex)
@@ -107,19 +119,6 @@ export default function CoursesPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMaterialIndex, selectedCourse, user])
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'indoc':
-        return 'bg-blue-100 text-blue-800'
-      case 'ground':
-        return 'bg-green-100 text-green-800'
-      case 'preflight':
-        return 'bg-purple-100 text-purple-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   if (authLoading || !user) {
     return (
