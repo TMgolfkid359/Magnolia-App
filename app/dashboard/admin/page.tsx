@@ -211,7 +211,11 @@ export default function AdminPage() {
       {/* Tab Content */}
       <div>
         {activeTab === 'users' && (
-          <UsersTab users={users} onRoleChange={handleRoleChange} />
+          <UsersTab 
+            users={users} 
+            onRoleChange={handleRoleChange}
+            onUsersUpdate={loadAllData}
+          />
         )}
         {activeTab === 'courses' && (
           <CoursesTab
