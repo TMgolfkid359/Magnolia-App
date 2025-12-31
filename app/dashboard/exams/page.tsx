@@ -147,8 +147,8 @@ export default function ExamsPage() {
     )
   }
 
-  // Show exam taking interface
-  if (selectedExam) {
+  // Show exam taking interface (only for instructors and admins)
+  if (selectedExam && user?.role !== 'student') {
     return (
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -255,17 +255,27 @@ export default function ExamsPage() {
   }
 
   // Show exam list
+  const isStudent = user?.role === 'student'
+  
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Exams</h1>
-        <p className="text-gray-600">Take exams to test your knowledge</p>
+        <p className="text-gray-600">
+          {isStudent ? 'View your exam results' : 'Take exams to test your knowledge'}
+        </p>
       </div>
 
       <div className="grid gap-6">
         {exams.map((exam) => {
           const userAttempts = examService.getUserAttempts(user?.id || '', exam.id)
-          const lastAttempt = userAttempts[userAttempts.length - 1]
+          const completedAttempts = userAttempts.filter(a => a.completedAt)
+          const lastAttempt = completedAttempts[completedAttempts.length - 1]
+
+          // For students, only show exams they have completed
+          if (isStudent && !lastAttempt) {
+            return null
+          }
 
           return (
             <div
@@ -279,23 +289,51 @@ export default function ExamsPage() {
                     <h2 className="text-xl font-semibold text-gray-900">{exam.title}</h2>
                   </div>
                   <p className="text-gray-600 mb-4">{exam.description}</p>
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                  <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
                     <span>{exam.questions.length} questions</span>
                     <span>Passing score: {exam.passingScore}%</span>
                     {exam.timeLimit && <span>Time limit: {exam.timeLimit} minutes</span>}
-                    {lastAttempt && (
-                      <span className={`font-medium ${lastAttempt.passed ? 'text-green-600' : 'text-red-600'}`}>
-                        Last attempt: {lastAttempt.score}% {lastAttempt.passed ? '(Passed)' : '(Failed)'}
-                      </span>
-                    )}
                   </div>
+                  
+                  {/* Show results for students */}
+                  {isStudent && lastAttempt && (
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div className="flex items-center space-x-3 mb-2">
+                        {lastAttempt.passed ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-500" />
+                        )}
+                        <span className={`text-lg font-semibold ${lastAttempt.passed ? 'text-green-600' : 'text-red-600'}`}>
+                          {lastAttempt.passed ? 'Passed' : 'Failed'}
+                        </span>
+                        <span className="text-lg font-bold text-magnolia-600">
+                          Score: {lastAttempt.score}%
+                        </span>
+                      </div>
+                      {lastAttempt.completedAt && (
+                        <p className="text-sm text-gray-500">
+                          Completed: {new Date(lastAttempt.completedAt).toLocaleString()}
+                        </p>
+                      )}
+                      {completedAttempts.length > 1 && (
+                        <p className="text-xs text-gray-400 mt-2">
+                          Total attempts: {completedAttempts.length}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => handleStartExam(exam)}
-                  className="ml-4 px-4 py-2 bg-magnolia-800 text-white rounded-md hover:bg-magnolia-900 transition-colors"
-                >
-                  {lastAttempt ? 'Retake Exam' : 'Start Exam'}
-                </button>
+                
+                {/* Only show start/retake button for non-students */}
+                {!isStudent && (
+                  <button
+                    onClick={() => handleStartExam(exam)}
+                    className="ml-4 px-4 py-2 bg-magnolia-800 text-white rounded-md hover:bg-magnolia-900 transition-colors"
+                  >
+                    {lastAttempt ? 'Retake Exam' : 'Start Exam'}
+                  </button>
+                )}
               </div>
             </div>
           )
@@ -304,6 +342,17 @@ export default function ExamsPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">No exams available yet.</p>
+          </div>
+        )}
+        {isStudent && exams.filter(exam => {
+          const userAttempts = examService.getUserAttempts(user?.id || '', exam.id)
+          const completedAttempts = userAttempts.filter(a => a.completedAt)
+          return completedAttempts.length > 0
+        }).length === 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">You haven't completed any exams yet.</p>
+            <p className="text-sm text-gray-500 mt-2">Exams are taken through course materials.</p>
           </div>
         )}
       </div>
