@@ -105,6 +105,7 @@ export default function CoursesPage() {
       const allCourses = courseService.getAllCourses()
       checkCourseCompletion(allCourses)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMaterialIndex, selectedCourse, user])
 
   const getTypeColor = (type: string) => {
