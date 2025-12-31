@@ -29,13 +29,30 @@ export default function ExamsPage() {
   }, [user, authLoading])
 
   useEffect(() => {
-    if (selectedExam && selectedExam.timeLimit) {
+    if (selectedExam && selectedExam.timeLimit && !attempt?.completedAt) {
       setTimeRemaining(selectedExam.timeLimit * 60) // Convert to seconds
       const interval = setInterval(() => {
         setTimeRemaining((prev) => {
           if (prev === null || prev <= 1) {
             clearInterval(interval)
-            handleSubmitExam()
+            if (selectedExam && user) {
+              const { score, passed } = examService.calculateScore(selectedExam, answers)
+              const completedAttempt: ExamAttempt = {
+                ...(attempt || {
+                  id: `attempt-${Date.now()}`,
+                  examId: selectedExam.id,
+                  userId: user.id,
+                  answers: {},
+                  startedAt: new Date().toISOString(),
+                }),
+                answers,
+                score,
+                passed,
+                completedAt: new Date().toISOString(),
+              }
+              examService.saveAttempt(completedAttempt)
+              setAttempt(completedAttempt)
+            }
             return 0
           }
           return prev - 1
@@ -43,7 +60,7 @@ export default function ExamsPage() {
       }, 1000)
       return () => clearInterval(interval)
     }
-  }, [selectedExam])
+  }, [selectedExam, attempt, answers, user])
 
   const handleStartExam = (exam: Exam) => {
     setSelectedExam(exam)
@@ -81,6 +98,7 @@ export default function ExamsPage() {
 
     examService.saveAttempt(completedAttempt)
     setAttempt(completedAttempt)
+    setTimeRemaining(null)
   }
 
   const formatTime = (seconds: number) => {
