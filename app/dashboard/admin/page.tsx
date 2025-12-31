@@ -77,11 +77,26 @@ export default function AdminPage() {
       return
     }
 
+    let savedCourse: Course | null = null
     if (editingCourse) {
-      courseService.updateCourse(editingCourse.id, courseData)
+      savedCourse = courseService.updateCourse(editingCourse.id, courseData)
     } else {
-      courseService.addCourse(courseData as Omit<Course, 'id'>)
+      savedCourse = courseService.addCourse(courseData as Omit<Course, 'id'>)
     }
+
+    // Link exams to course if quiz materials have examIds
+    if (savedCourse && savedCourse.materials) {
+      savedCourse.materials.forEach(material => {
+        if (material.type === 'quiz' && material.examId) {
+          // Update the exam's courseId to link it to this course
+          const exam = examService.getExamById(material.examId)
+          if (exam && exam.courseId !== savedCourse!.id) {
+            examService.updateExam(material.examId, { courseId: savedCourse!.id })
+          }
+        }
+      })
+    }
+
     loadAllData()
     setIsAddingCourse(false)
     setEditingCourse(null)
@@ -220,6 +235,7 @@ export default function AdminPage() {
         {activeTab === 'courses' && (
           <CoursesTab
             courses={courses}
+            exams={exams}
             onAdd={handleAddCourse}
             onEdit={handleEditCourse}
             onSave={handleSaveCourse}
@@ -461,6 +477,7 @@ function UsersTab({
 // Courses Tab Component
 function CoursesTab({
   courses,
+  exams,
   onAdd,
   onEdit,
   onSave,
@@ -470,6 +487,7 @@ function CoursesTab({
   onCancel,
 }: {
   courses: Course[]
+  exams: Exam[]
   onAdd: () => void
   onEdit: (course: Course) => void
   onSave: (data: Partial<Course>) => void
@@ -534,6 +552,7 @@ function CoursesTab({
           onSave={handleSave}
           onCancel={onCancel}
           isEditing={!!editingCourse}
+          exams={exams}
         />
       )}
 
@@ -592,12 +611,14 @@ function CourseForm({
   onSave,
   onCancel,
   isEditing,
+  exams,
 }: {
   formData: Partial<Course>
   setFormData: (data: Partial<Course>) => void
   onSave: () => void
   onCancel: () => void
   isEditing: boolean
+  exams: Exam[]
 }) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -692,7 +713,12 @@ function CourseForm({
                     value={material.type}
                     onChange={(e) => {
                       const newMaterials = [...(formData.materials || [])]
-                      newMaterials[index] = { ...material, type: e.target.value as 'document' | 'video' | 'quiz' }
+                      const newType = e.target.value as 'document' | 'video' | 'quiz'
+                      newMaterials[index] = { 
+                        ...material, 
+                        type: newType,
+                        examId: newType === 'quiz' ? material.examId : undefined // Keep examId if switching to quiz, clear otherwise
+                      }
                       setFormData({ ...formData, materials: newMaterials })
                     }}
                     className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
@@ -718,7 +744,7 @@ function CourseForm({
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
-                    {material.type === 'document' ? 'Upload File or URL' : material.type === 'video' ? 'Video URL' : 'URL'}
+                    {material.type === 'document' ? 'Upload File or URL' : material.type === 'video' ? 'Video URL' : 'Select Exam'}
                   </label>
                   {material.type === 'document' ? (
                     <div className="space-y-2">
@@ -763,6 +789,27 @@ function CourseForm({
                         placeholder="Or enter document URL"
                       />
                     </div>
+                  ) : material.type === 'quiz' ? (
+                    <select
+                      value={material.examId || ''}
+                      onChange={(e) => {
+                        const newMaterials = [...(formData.materials || [])]
+                        newMaterials[index] = { 
+                          ...material, 
+                          examId: e.target.value || undefined,
+                          url: undefined // Clear URL for quiz type
+                        }
+                        setFormData({ ...formData, materials: newMaterials })
+                      }}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
+                    >
+                      <option value="">Select an exam...</option>
+                      {exams.map(exam => (
+                        <option key={exam.id} value={exam.id}>
+                          {exam.title} ({exam.questions.length} questions)
+                        </option>
+                      ))}
+                    </select>
                   ) : (
                     <input
                       type="text"
@@ -773,8 +820,7 @@ function CourseForm({
                         setFormData({ ...formData, materials: newMaterials })
                       }}
                       className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
-                      placeholder={material.type === 'video' ? 'Video URL' : 'URL'}
-                      disabled={material.type === 'quiz'}
+                      placeholder="Video URL"
                     />
                   )}
                 </div>

@@ -58,9 +58,39 @@ export const examService = {
     return exams.find(e => e.id === id)
   },
 
-  // Get exams for a course
+  // Get exams for a course (by courseId or via course materials)
   getExamsByCourse(courseId: string): Exam[] {
-    return this.getAllExams().filter(e => e.courseId === courseId)
+    const allExams = this.getAllExams()
+    // Get exams directly linked via courseId
+    const directlyLinked = allExams.filter(e => e.courseId === courseId)
+    
+    // Get exams linked via course materials
+    if (typeof window !== 'undefined') {
+      try {
+        const coursesJson = localStorage.getItem('magnolia_courses')
+        if (coursesJson) {
+          const courses = JSON.parse(coursesJson)
+          const course = courses.find((c: any) => c.id === courseId)
+          if (course && course.materials) {
+            const materialExamIds = course.materials
+              .filter((m: any) => m.type === 'quiz' && m.examId)
+              .map((m: any) => m.examId)
+            
+            const materialLinkedExams = allExams.filter(e => materialExamIds.includes(e.id))
+            
+            // Combine and remove duplicates
+            const allLinked = [...directlyLinked, ...materialLinkedExams]
+            return allLinked.filter((exam, index, self) => 
+              index === self.findIndex(e => e.id === exam.id)
+            )
+          }
+        }
+      } catch {
+        // If parsing fails, just return directly linked
+      }
+    }
+    
+    return directlyLinked
   },
 
   // Save exams

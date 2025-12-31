@@ -17,6 +17,7 @@ export interface Course {
     fileData?: string // Base64 encoded file data for PDF/PPT
     fileName?: string // Original file name
     fileType?: string // MIME type (e.g., 'application/pdf', 'application/vnd.ms-powerpoint')
+    examId?: string // For quiz type: link to an existing exam
   }[]
 }
 
