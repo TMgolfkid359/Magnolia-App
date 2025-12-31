@@ -14,6 +14,7 @@ export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [currentMaterialIndex, setCurrentMaterialIndex] = useState<number>(0)
+  const [previousCourseId, setPreviousCourseId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -79,6 +80,44 @@ export default function CoursesPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading])
+
+  // Track time when viewing a course
+  useEffect(() => {
+    if (!user) return
+
+    // Stop tracking previous course if switching
+    if (previousCourseId && previousCourseId !== selectedCourse?.id) {
+      progressService.stopTimeTracking(previousCourseId, user.id)
+    }
+
+    // Start tracking new course
+    if (selectedCourse) {
+      progressService.startTimeTracking(selectedCourse.id, user.id)
+      setPreviousCourseId(selectedCourse.id)
+    }
+
+    // Cleanup: stop tracking when component unmounts or user leaves
+    return () => {
+      if (selectedCourse && user) {
+        progressService.stopTimeTracking(selectedCourse.id, user.id)
+      }
+    }
+  }, [selectedCourse?.id, user, previousCourseId])
+
+  // Update time every 30 seconds while viewing
+  useEffect(() => {
+    if (!user || !selectedCourse) return
+
+    const interval = setInterval(() => {
+      // This will accumulate the time when we stop tracking
+      // We just need to ensure the session is active
+      if (selectedCourse) {
+        progressService.startTimeTracking(selectedCourse.id, user.id)
+      }
+    }, 30000) // Update every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [selectedCourse?.id, user])
 
   useEffect(() => {
     if (user && selectedCourse) {

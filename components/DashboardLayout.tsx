@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { BookOpen, Video, LogOut, User, Settings, FileText } from 'lucide-react'
+import { BookOpen, Video, LogOut, User, Settings, FileText, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import MagnoliaLogo from './MagnoliaLogo'
@@ -21,6 +21,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/courses', label: 'Courses', icon: BookOpen },
     { href: '/dashboard/videos', label: 'Video Portal', icon: Video },
     { href: '/dashboard/exams', label: 'Exams', icon: FileText },
+    ...(user?.role === 'instructor' || user?.role === 'admin' 
+      ? [{ href: '/dashboard/analytics', label: 'Analytics', icon: TrendingUp }] 
+      : []),
     ...(user?.role === 'admin' ? [{ href: '/dashboard/admin', label: 'Admin', icon: Settings }] : []),
   ]
 

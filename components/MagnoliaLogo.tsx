@@ -15,21 +15,23 @@ export default function MagnoliaLogo({ className = '', size = 'md', variant = 'l
     lg: 'h-16',
   }
 
-  const imageSizes = {
-    sm: 32,
-    md: 48,
-    lg: 64,
-  }
+  // Approximate aspect ratio for horizontal logo (text + emblem)
+  // Adjust these if needed based on actual logo dimensions
+  const widthMultiplier = 3.5 // Horizontal logo is wider than tall
 
   return (
     <div className={`flex items-center ${className} transition-opacity hover:opacity-90`}>
       <Image
         src="/images/logo.png"
         alt="Magnolia Logo"
-        width={imageSizes[size]}
-        height={imageSizes[size]}
+        width={200}
+        height={57}
         className={`${sizeClasses[size]} w-auto object-contain`}
         priority
+        style={{ 
+          maxWidth: '100%',
+          height: 'auto'
+        }}
       />
     </div>
   )
