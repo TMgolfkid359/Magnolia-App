@@ -212,24 +212,23 @@ export default function CoursesPage() {
 
       {/* Course Material Viewer */}
       {selectedCourse && selectedCourse.materials.length > 0 && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{selectedCourse.title}</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Material {currentMaterialIndex + 1} of {selectedCourse.materials.length}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedCourse(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="h-6 w-6" />
-              </button>
+        <div className="fixed inset-0 bg-white z-50 flex flex-col">
+          <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-white">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">{selectedCourse.title}</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Material {currentMaterialIndex + 1} of {selectedCourse.materials.length}
+              </p>
             </div>
+            <button
+              onClick={() => setSelectedCourse(null)}
+              className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
 
-            <div className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-auto p-6">
               {(() => {
                 const material = selectedCourse.materials[currentMaterialIndex]
                 
@@ -237,7 +236,7 @@ export default function CoursesPage() {
                   return (
                     <div className="space-y-4">
                       <h3 className="text-xl font-semibold text-gray-900">{material.title}</h3>
-                      <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                      <div className="w-full bg-gray-900 rounded-lg overflow-hidden" style={{ height: 'calc(100vh - 250px)' }}>
                         {material.url ? (
                           <iframe
                             src={material.url}
@@ -264,7 +263,7 @@ export default function CoursesPage() {
                           <iframe
                             src={material.fileData}
                             className="w-full"
-                            style={{ height: '70vh' }}
+                            style={{ height: 'calc(100vh - 250px)' }}
                             title={material.title}
                           ></iframe>
                         </div>
@@ -273,7 +272,7 @@ export default function CoursesPage() {
                           <iframe
                             src={material.url}
                             className="w-full"
-                            style={{ height: '70vh' }}
+                            style={{ height: 'calc(100vh - 250px)' }}
                             title={material.title}
                           ></iframe>
                         </div>
@@ -343,7 +342,7 @@ export default function CoursesPage() {
               })()}
             </div>
 
-            <div className="flex justify-between items-center p-6 border-t border-gray-200 bg-gray-50">
+            <div className="flex justify-between items-center p-6 border-t border-gray-200 bg-white">
               <button
                 onClick={() => {
                   const newIndex = Math.max(0, currentMaterialIndex - 1)
