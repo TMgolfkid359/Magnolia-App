@@ -4,14 +4,17 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { fspApi, FlightSchedule } from '@/services/fspApi'
-import { Calendar, Clock, Plane, CheckCircle, XCircle } from 'lucide-react'
+import { Calendar, Clock, Plane, CheckCircle, XCircle, Grid3x3, List } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
+import CalendarView from '@/components/CalendarView'
 
 export default function SchedulePage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [schedules, setSchedules] = useState<{ upcoming: FlightSchedule[]; past: FlightSchedule[] } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar')
+  const [selectedDateSchedules, setSelectedDateSchedules] = useState<{ date: Date; schedules: FlightSchedule[] } | null>(null)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -81,12 +84,101 @@ export default function SchedulePage() {
     }
   }
 
+  const allSchedules = schedules ? [...schedules.upcoming, ...schedules.past] : []
+
+  const handleDateClick = (date: Date, daySchedules: FlightSchedule[]) => {
+    setSelectedDateSchedules({ date, schedules: daySchedules })
+  }
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Flight Schedule</h1>
-        <p className="text-gray-600">View your upcoming and past flight schedules</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Flight Schedule</h1>
+          <p className="text-gray-600">View your upcoming and past flight schedules</p>
+        </div>
+        <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+              viewMode === 'calendar'
+                ? 'bg-magnolia-600 text-white'
+                : 'text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Grid3x3 className="h-4 w-4" />
+            <span>Calendar</span>
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+              viewMode === 'list'
+                ? 'bg-magnolia-600 text-white'
+                : 'text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <List className="h-4 w-4" />
+            <span>List</span>
+          </button>
+        </div>
       </div>
+
+      {/* Calendar View */}
+      {viewMode === 'calendar' && schedules && (
+        <div className="space-y-6">
+          <CalendarView schedules={allSchedules} onDateClick={handleDateClick} />
+          
+          {/* Selected Date Details */}
+          {selectedDateSchedules && selectedDateSchedules.schedules.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                {format(selectedDateSchedules.date, 'EEEE, MMMM d, yyyy')}
+              </h3>
+              <div className="space-y-3">
+                {selectedDateSchedules.schedules.map((schedule) => (
+                  <div
+                    key={schedule.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Plane className="h-5 w-5 text-magnolia-600" />
+                      <h4 className="text-lg font-semibold text-gray-900">
+                        {schedule.type.charAt(0).toUpperCase() + schedule.type.slice(1)} Flight
+                      </h4>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(schedule.type)}`}>
+                        {schedule.type}
+                      </span>
+                      {getStatusIcon(schedule.status)}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                      <div>
+                        <span className="font-medium">Time:</span> {schedule.startTime} - {schedule.endTime}
+                      </div>
+                      <div>
+                        <span className="font-medium">Aircraft:</span> {schedule.aircraftId}
+                      </div>
+                      {schedule.instructorId && (
+                        <div>
+                          <span className="font-medium">Instructor:</span> {schedule.instructorId}
+                        </div>
+                      )}
+                    </div>
+                    {schedule.notes && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        <span className="font-medium">Notes:</span> {schedule.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <>
 
       {/* Upcoming Flights */}
       <div>
@@ -203,6 +295,8 @@ export default function SchedulePage() {
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   )
 }
