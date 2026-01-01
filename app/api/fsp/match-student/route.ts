@@ -25,22 +25,92 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Fetch students from FSP API
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_FSP_API_URL || 'https://api.flightschedulepro.com'}/operators/${operatorId}/students`,
-      {
-        headers: {
-          'x-subscription-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    // Fetch students from FSP API - try multiple endpoint formats
+    const apiUrl = process.env.NEXT_PUBLIC_FSP_API_URL || 'https://api.flightschedulepro.com'
+    const endpoints = [
+      `${apiUrl}/operators/${operatorId}/students`,  // Try without /api/v1 first
+      `${apiUrl}/api/v1/operators/${operatorId}/students`,  // Try with /api/v1
+      `${apiUrl}/api/operators/${operatorId}/students`,  // Try with /api
+    ]
+    
+    let response: Response | null = null
+    let lastError: string = ''
+    let data: any = null
 
-    if (!response.ok) {
-      throw new Error(`FSP API error: ${response.status}`)
+    for (const endpoint of endpoints) {
+      try {
+        console.log('FSP API Request:', {
+          url: endpoint,
+          operatorId,
+          hasApiKey: !!apiKey,
+        })
+
+        response = await fetch(endpoint, {
+          headers: {
+            'x-subscription-key': apiKey,
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          data = await response.json()
+          console.log('FSP API Success:', { url: endpoint, dataKeys: Object.keys(data) })
+          break
+        } else {
+          const errorText = await response.text()
+          lastError = `Status ${response.status}: ${errorText}`
+          console.log(`FSP API Error for ${endpoint}:`, {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText,
+          })
+          
+          // If it's not a 404, don't try other endpoints
+          if (response.status !== 404) {
+            throw new Error(`FSP API error: ${response.status} - ${errorText}`)
+          }
+        }
+      } catch (err: any) {
+        lastError = err.message
+        console.error(`Error fetching ${endpoint}:`, err)
+        // Continue to next endpoint if this was a 404 or network error
+        if (response && response.status === 404) {
+          continue
+        }
+        // If it's a network error (no response), try next endpoint
+        if (!response) {
+          continue
+        }
+        // For other errors, throw immediately
+        throw err
+      }
     }
 
-    const data = await response.json()
+    if (!response || !response.ok || !data) {
+      const errorMessage = lastError || 'All endpoints returned 404. The API endpoint structure may be incorrect.'
+      console.error('FSP API: All endpoints failed', { 
+        lastError, 
+        endpoints,
+        operatorId,
+        apiUrl,
+        hasApiKey: !!apiKey 
+      })
+      
+      // Return a more helpful error message
+      return NextResponse.json(
+        { 
+          error: `Unable to connect to Flight Schedule Pro API. All endpoint attempts failed (404 errors). This may indicate:
+- The API endpoint structure is incorrect
+- The Operator ID (${operatorId}) is invalid
+- The API requires a different authentication method
+Please verify your API credentials and endpoint structure in the FSP API documentation.`,
+          fspStudentId: null,
+          debug: process.env.NODE_ENV === 'development' ? { endpoints, lastError } : undefined
+        },
+        { status: 500 }
+      )
+    }
+
     const students = data.students || data.data || data || []
 
     // Find matching student by email
