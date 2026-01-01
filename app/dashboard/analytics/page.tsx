@@ -166,7 +166,7 @@ export default function AnalyticsPage() {
   }, [user, authLoading, selectedCourse, selectedStudent, selectedExam])
 
   // Helper functions
-  const formatTime = (seconds: number): string => {
+  function formatTime(seconds: number): string {
     if (seconds < 60) return `${seconds}s`
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
@@ -181,34 +181,34 @@ export default function AnalyticsPage() {
     return `${hours}h`
   }
 
-  const getTotalTime = (): number => {
+  function getTotalTime(): number {
     return timeData.reduce((sum, item) => sum + item.timeSpentSeconds, 0)
   }
 
-  const getAverageTime = (): number => {
+  function getAverageTime(): number {
     if (timeData.length === 0) return 0
     return Math.floor(getTotalTime() / timeData.length)
   }
 
-  const getUniqueStudents = (): number => {
+  function getUniqueStudents(): number {
     return new Set(timeData.map(d => d.userId)).size
   }
 
   // Exam statistics calculations
-  const getTotalExamAttempts = (): number => {
+  function getTotalExamAttempts(): number {
     return examData.reduce((sum, item) => sum + item.attempts.length, 0)
   }
 
-  const getPassedExams = (): number => {
+  function getPassedExams(): number {
     return examData.filter(item => item.passed).length
   }
 
-  const getPassRate = (): number => {
+  function getPassRate(): number {
     if (examData.length === 0) return 0
     return Math.round((getPassedExams() / examData.length) * 100)
   }
 
-  const getAverageScore = (): number => {
+  function getAverageScore(): number {
     const allScores = examData
       .flatMap(item => item.attempts)
       .filter(attempt => attempt.score !== undefined)
