@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Calendar, BookOpen, FileText, Clock, CheckCircle, AlertCircle, Plane } from 'lucide-react'
-import { courseService, Course } from '@/services/courseService'
-import { examService, Exam } from '@/services/examService'
+import { courseService } from '@/services/courseService'
+import { examService } from '@/services/examService'
 import { progressService } from '@/services/progressService'
-import { userService, PortalUser } from '@/services/userService'
+import { userService } from '@/services/userService'
 import Link from 'next/link'
 
 interface ScheduleItem {
@@ -47,14 +47,7 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router])
 
-  useEffect(() => {
-    if (user && !authLoading) {
-      loadSchedule()
-      loadAssignments()
-    }
-  }, [user, authLoading])
-
-  const loadSchedule = async () => {
+  const loadSchedule = useCallback(async () => {
     if (!user?.email) return
 
     setLoadingSchedule(true)
@@ -86,9 +79,9 @@ export default function DashboardPage() {
     } finally {
       setLoadingSchedule(false)
     }
-  }
+  }, [user])
 
-  const loadAssignments = () => {
+  const loadAssignments = useCallback(() => {
     if (!user) return
 
     const allAssignments: Assignment[] = []
@@ -178,7 +171,14 @@ export default function DashboardPage() {
     })
 
     setAssignments(allAssignments)
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      loadSchedule()
+      loadAssignments()
+    }
+  }, [user, authLoading, loadSchedule, loadAssignments])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
