@@ -31,6 +31,22 @@ interface ExamStatisticsData {
   lastAttemptDate?: string
 }
 
+// Helper functions
+function formatTime(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  if (minutes < 60) {
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`
+  }
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  if (remainingMinutes > 0) {
+    return `${hours}h ${remainingMinutes}m`
+  }
+  return `${hours}h`
+}
+
 export default function AnalyticsPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -165,50 +181,35 @@ export default function AnalyticsPage() {
     setExamData(examDataArray)
   }, [user, authLoading, selectedCourse, selectedStudent, selectedExam])
 
-  // Helper functions
-  function formatTime(seconds: number): string {
-    if (seconds < 60) return `${seconds}s`
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = seconds % 60
-    if (minutes < 60) {
-      return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`
-    }
-    const hours = Math.floor(minutes / 60)
-    const remainingMinutes = minutes % 60
-    if (remainingMinutes > 0) {
-      return `${hours}h ${remainingMinutes}m`
-    }
-    return `${hours}h`
-  }
-
-  function getTotalTime(): number {
+  // Helper functions that use component state
+  const getTotalTime = (): number => {
     return timeData.reduce((sum, item) => sum + item.timeSpentSeconds, 0)
   }
 
-  function getAverageTime(): number {
+  const getAverageTime = (): number => {
     if (timeData.length === 0) return 0
     return Math.floor(getTotalTime() / timeData.length)
   }
 
-  function getUniqueStudents(): number {
+  const getUniqueStudents = (): number => {
     return new Set(timeData.map(d => d.userId)).size
   }
 
   // Exam statistics calculations
-  function getTotalExamAttempts(): number {
+  const getTotalExamAttempts = (): number => {
     return examData.reduce((sum, item) => sum + item.attempts.length, 0)
   }
 
-  function getPassedExams(): number {
+  const getPassedExams = (): number => {
     return examData.filter(item => item.passed).length
   }
 
-  function getPassRate(): number {
+  const getPassRate = (): number => {
     if (examData.length === 0) return 0
     return Math.round((getPassedExams() / examData.length) * 100)
   }
 
-  function getAverageScore(): number {
+  const getAverageScore = (): number => {
     const allScores = examData
       .flatMap(item => item.attempts)
       .filter(attempt => attempt.score !== undefined)
