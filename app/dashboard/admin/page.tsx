@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X, CheckCircle, MapPin } from 'lucide-react'
+import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X, CheckCircle, MapPin, Wrench } from 'lucide-react'
 import { userService, PortalUser } from '@/services/userService'
 import { courseService, Course } from '@/services/courseService'
 import { videoService, VideoLesson } from '@/services/videoService'
 import { examService, Exam, ExamQuestion } from '@/services/examService'
 
-type Tab = 'users' | 'courses' | 'videos' | 'exams'
+type Tab = 'users' | 'courses' | 'videos' | 'exams' | 'tools'
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth()
@@ -200,6 +200,7 @@ export default function AdminPage() {
             { id: 'courses' as Tab, label: 'Courses', icon: BookOpen, count: courses.length },
             { id: 'videos' as Tab, label: 'Videos', icon: Video, count: videos.length },
             { id: 'exams' as Tab, label: 'Exams', icon: FileText, count: exams.length },
+            { id: 'tools' as Tab, label: 'Interactive Tools', icon: Wrench, count: 0 },
           ].map((tab) => {
             const Icon = tab.icon
             return (
@@ -278,6 +279,9 @@ export default function AdminPage() {
               setEditingExam(null)
             }}
           />
+        )}
+        {activeTab === 'tools' && (
+          <InteractiveToolsTab />
         )}
       </div>
     </div>
@@ -1828,6 +1832,22 @@ function ExamsTab({
           {exams.length === 0 && (
             <div className="text-center py-8 text-gray-500">No exams yet</div>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Interactive Tools Tab Component
+function InteractiveToolsTab() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12">
+        <div className="text-center">
+          <Wrench className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Interactive Tools</h2>
+          <p className="text-gray-600 text-lg">To Be Determined</p>
+          <p className="text-gray-500 text-sm mt-2">This section will contain interactive tools and utilities.</p>
         </div>
       </div>
     </div>
