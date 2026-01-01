@@ -44,7 +44,6 @@ export default function AnalyticsPage() {
   const [selectedStudent, setSelectedStudent] = useState<string>('all')
   const [selectedExam, setSelectedExam] = useState<string>('all')
 
-
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/')
