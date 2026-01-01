@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X, CheckCircle, MapPin } from 'lucide-react'
@@ -311,16 +311,16 @@ function UsersTab({
   
   const [courses, setCourses] = useState<Course[]>([])
   const [instructors, setInstructors] = useState<PortalUser[]>([])
-  
-  // Get pending students - computed with useMemo to satisfy React rules
-  const pendingStudents = useMemo(() => userService.getPendingStudents(), [users])
+  const [pendingStudents, setPendingStudents] = useState<PortalUser[]>([])
   
   useEffect(() => {
     // Load courses and instructors for create form
     setCourses(courseService.getAllCourses())
     const allUsers = userService.getAllUsers()
     setInstructors(allUsers.filter(u => u.role === 'instructor' && u.enrolled))
-  }, [])
+    // Load pending students
+    setPendingStudents(userService.getPendingStudents())
+  }, [users])
   
   const handleApproveStudent = (studentId: string) => {
     userService.approveStudent(studentId)
