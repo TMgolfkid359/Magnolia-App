@@ -7,6 +7,7 @@ import { Calendar, BookOpen, FileText, Clock, CheckCircle, AlertCircle, Plane } 
 import { courseService, Course } from '@/services/courseService'
 import { examService, Exam } from '@/services/examService'
 import { progressService } from '@/services/progressService'
+import { userService, PortalUser } from '@/services/userService'
 import Link from 'next/link'
 
 interface ScheduleItem {
@@ -92,10 +93,14 @@ export default function DashboardPage() {
 
     const allAssignments: Assignment[] = []
 
+    // Get full user data from userService to access enrolledCourseIds
+    const fullUser = userService.getUserById(user.id)
+    if (!fullUser) return
+
     // Get user's enrolled courses
     const allCourses = courseService.getAllCourses()
-    const userCourses = user.enrolledCourseIds 
-      ? allCourses.filter(c => user.enrolledCourseIds?.includes(c.id))
+    const userCourses = fullUser.enrolledCourseIds 
+      ? allCourses.filter(c => fullUser.enrolledCourseIds?.includes(c.id))
       : allCourses
 
     // Check course completion status
@@ -103,13 +108,13 @@ export default function DashboardPage() {
       if (course.completed) return
 
       // Check if course has materials that haven't been viewed
-      const progress = progressService.getProgress(course.id, user.id)
+      const progress = progressService.getProgress(course.id, fullUser.id)
       const materialsViewed = progress?.materialsViewed || 0
       const totalMaterials = course.materials.length
 
       // Get exams for this course
       const courseExams = examService.getExamsByCourse(course.id)
-      const userAttempts = examService.getUserAttempts(user.id)
+      const userAttempts = examService.getUserAttempts(fullUser.id)
       
       // Check if all required exams are passed
       const examsPassed = courseExams.every(exam => {
@@ -393,7 +398,10 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm text-gray-600">Enrolled Courses</p>
               <p className="text-2xl font-bold text-gray-900">
-                {user.enrolledCourseIds?.length || 0}
+                {(() => {
+                  const fullUser = userService.getUserById(user.id)
+                  return fullUser?.enrolledCourseIds?.length || 0
+                })()}
               </p>
             </div>
           </div>
