@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { userService } from '@/services/userService'
 
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json()
