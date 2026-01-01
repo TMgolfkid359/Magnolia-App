@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Clock, Users, BookOpen, TrendingUp, FileText, CheckCircle, XCircle, Award } from 'lucide-react'
@@ -44,7 +44,7 @@ export default function AnalyticsPage() {
   const [selectedStudent, setSelectedStudent] = useState<string>('all')
   const [selectedExam, setSelectedExam] = useState<string>('all')
 
-  const loadTimeData = (allCourses: Course[], allStudents: PortalUser[]) => {
+  const loadTimeData = useCallback((allCourses: Course[], allStudents: PortalUser[]) => {
     const allProgress = progressService.getAllUsersProgress()
     const data: StudentTimeData[] = []
 
@@ -77,9 +77,9 @@ export default function AnalyticsPage() {
     // Sort by time spent (descending)
     data.sort((a, b) => b.timeSpentSeconds - a.timeSpentSeconds)
     setTimeData(data)
-  }
+  }, [selectedCourse, selectedStudent])
 
-  const loadExamData = (allExams: Exam[], allStudents: PortalUser[]) => {
+  const loadExamData = useCallback((allExams: Exam[], allStudents: PortalUser[]) => {
     const allAttempts = examService.getAllAttempts()
     const dataMap = new Map<string, ExamStatisticsData>()
 
@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
       return a.studentName.localeCompare(b.studentName)
     })
     setExamData(data)
-  }
+  }, [selectedExam, selectedStudent])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -170,7 +170,7 @@ export default function AnalyticsPage() {
     loadTimeData(allCourses, studentUsers)
     // Load exam data
     loadExamData(allExams, studentUsers)
-  }, [user, authLoading, selectedCourse, selectedStudent, selectedExam])
+  }, [user, authLoading, selectedCourse, selectedStudent, selectedExam, loadTimeData, loadExamData])
 
   const formatTime = (seconds: number): string => {
     if (seconds < 60) return `${seconds}s`
