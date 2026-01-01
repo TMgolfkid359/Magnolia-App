@@ -28,7 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-magnolia-50/30">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white/95 backdrop-blur-sm shadow-md border-b border-gray-200/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

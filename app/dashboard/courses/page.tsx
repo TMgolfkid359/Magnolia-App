@@ -3,10 +3,16 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { BookOpen, CheckCircle, Circle, FileText, Clock, Play, ArrowRight, X } from 'lucide-react'
+import { BookOpen, CheckCircle, Circle, FileText, Clock, Play, ArrowRight, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { courseService, Course } from '@/services/courseService'
 import { progressService } from '@/services/progressService'
 import { examService } from '@/services/examService'
+
+interface PPTXSlide {
+  number: number
+  content: string
+  images: string[]
+}
 
 export default function CoursesPage() {
   const { user, loading: authLoading } = useAuth()
@@ -15,6 +21,9 @@ export default function CoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
   const [currentMaterialIndex, setCurrentMaterialIndex] = useState<number>(0)
   const [previousCourseId, setPreviousCourseId] = useState<string | null>(null)
+  const [pptxSlides, setPptxSlides] = useState<PPTXSlide[]>([])
+  const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0)
+  const [loadingPptx, setLoadingPptx] = useState<boolean>(false)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -118,6 +127,64 @@ export default function CoursesPage() {
 
     return () => clearInterval(interval)
   }, [selectedCourse?.id, user])
+
+  // Load PPTX slides when PowerPoint material is displayed
+  useEffect(() => {
+    if (!selectedCourse) {
+      setPptxSlides([])
+      setCurrentSlideIndex(0)
+      return
+    }
+
+    const material = selectedCourse.materials[currentMaterialIndex]
+    if (!material) {
+      setPptxSlides([])
+      setCurrentSlideIndex(0)
+      return
+    }
+
+    const isPowerPoint = material.fileType?.includes('powerpoint') || 
+                        material.fileType?.includes('presentation') ||
+                        material.fileName?.toLowerCase().endsWith('.ppt') ||
+                        material.fileName?.toLowerCase().endsWith('.pptx') ||
+                        material.url?.toLowerCase().endsWith('.ppt') ||
+                        material.url?.toLowerCase().endsWith('.pptx')
+
+    if (isPowerPoint && material.fileData) {
+      loadPptxSlides(material.fileData)
+    } else {
+      setPptxSlides([])
+      setCurrentSlideIndex(0)
+    }
+  }, [selectedCourse, currentMaterialIndex])
+
+  const loadPptxSlides = async (fileData: string) => {
+    setLoadingPptx(true)
+    try {
+      const response = await fetch('/api/convert-pptx', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fileData }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to convert PPTX')
+      }
+
+      const data = await response.json()
+      if (data.success && data.slides) {
+        setPptxSlides(data.slides)
+        setCurrentSlideIndex(0)
+      }
+    } catch (error) {
+      console.error('Error loading PPTX slides:', error)
+      setPptxSlides([])
+    } finally {
+      setLoadingPptx(false)
+    }
+  }
 
   useEffect(() => {
     if (user && selectedCourse) {
@@ -233,7 +300,7 @@ export default function CoursesPage() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-gradient-to-r from-magnolia-50 to-white rounded-xl p-6 border border-magnolia-100 shadow-sm">
+      <div className="bg-white rounded-xl p-6 border border-magnolia-100 shadow-sm">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Courses</h1>
         <p className="text-gray-600">Complete your required courses to prepare for flight training. Take your time and learn at your own pace!</p>
       </div>
@@ -395,19 +462,100 @@ export default function CoursesPage() {
                       <h3 className="text-xl font-semibold text-gray-900">{material.title}</h3>
                       {material.fileData ? (
                         isPowerPoint ? (
-                          // PowerPoint files: show download button (base64 files can't be viewed online)
-                          <div className="border border-gray-200 rounded-lg p-8 text-center">
-                            <FileText className="h-16 w-16 mx-auto mb-4 text-magnolia-600" />
-                            <p className="text-gray-700 mb-2 font-medium">{material.fileName || 'PowerPoint Presentation'}</p>
-                            <p className="text-sm text-gray-500 mb-6">PowerPoint files cannot be displayed directly in the browser. Please download to view.</p>
-                            <a
-                              href={material.fileData}
-                              download={material.fileName || 'presentation.pptx'}
-                              className="inline-flex items-center justify-center px-6 py-3 bg-magnolia-800 text-white rounded-md hover:bg-magnolia-900 transition-colors"
-                            >
-                              <ArrowRight className="h-4 w-4 mr-2" />
-                              Download PowerPoint File
-                            </a>
+                          // PowerPoint files: display slides
+                          <div className="space-y-4">
+                            {loadingPptx ? (
+                              <div className="border border-gray-200 rounded-lg p-8 text-center">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magnolia-600 mx-auto mb-4"></div>
+                                <p className="text-gray-600">Loading presentation...</p>
+                              </div>
+                            ) : pptxSlides.length > 0 ? (
+                              <div className="space-y-4">
+                                {/* Slide Viewer */}
+                                <div className="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden">
+                                  <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                                    <div>
+                                      <h4 className="text-sm font-medium text-gray-700">
+                                        Slide {currentSlideIndex + 1} of {pptxSlides.length}
+                                      </h4>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <button
+                                        onClick={() => setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1))}
+                                        disabled={currentSlideIndex === 0}
+                                        className="p-2 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                      >
+                                        <ChevronLeft className="h-5 w-5 text-gray-600" />
+                                      </button>
+                                      <button
+                                        onClick={() => setCurrentSlideIndex(Math.min(pptxSlides.length - 1, currentSlideIndex + 1))}
+                                        disabled={currentSlideIndex === pptxSlides.length - 1}
+                                        className="p-2 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                      >
+                                        <ChevronRight className="h-5 w-5 text-gray-600" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="p-8 min-h-[500px] flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-white">
+                                    {pptxSlides[currentSlideIndex] && (
+                                      <div className="w-full max-w-4xl space-y-6">
+                                        {/* Images */}
+                                        {pptxSlides[currentSlideIndex].images.length > 0 && (
+                                          <div className="space-y-4">
+                                            {pptxSlides[currentSlideIndex].images.map((img, idx) => (
+                                              <img
+                                                key={idx}
+                                                src={img}
+                                                alt={`Slide ${currentSlideIndex + 1} image ${idx + 1}`}
+                                                className="max-w-full h-auto rounded-lg shadow-md mx-auto"
+                                              />
+                                            ))}
+                                          </div>
+                                        )}
+                                        {/* Text Content */}
+                                        {pptxSlides[currentSlideIndex].content && (
+                                          <div className="prose prose-lg max-w-none">
+                                            {pptxSlides[currentSlideIndex].content.split('\n').map((line, idx) => (
+                                              <p key={idx} className="text-gray-800 text-lg mb-4">
+                                                {line}
+                                              </p>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {!pptxSlides[currentSlideIndex].content && pptxSlides[currentSlideIndex].images.length === 0 && (
+                                          <p className="text-gray-500 text-center">Empty slide</p>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                {/* Download Button */}
+                                <div className="flex justify-center">
+                                  <a
+                                    href={material.fileData}
+                                    download={material.fileName || 'presentation.pptx'}
+                                    className="inline-flex items-center justify-center px-6 py-3 bg-magnolia-800 text-white rounded-md hover:bg-magnolia-900 transition-colors"
+                                  >
+                                    <ArrowRight className="h-4 w-4 mr-2" />
+                                    Download PowerPoint File
+                                  </a>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="border border-gray-200 rounded-lg p-8 text-center">
+                                <FileText className="h-16 w-16 mx-auto mb-4 text-magnolia-600" />
+                                <p className="text-gray-700 mb-2 font-medium">{material.fileName || 'PowerPoint Presentation'}</p>
+                                <p className="text-sm text-gray-500 mb-6">Unable to load presentation. Please download to view.</p>
+                                <a
+                                  href={material.fileData}
+                                  download={material.fileName || 'presentation.pptx'}
+                                  className="inline-flex items-center justify-center px-6 py-3 bg-magnolia-800 text-white rounded-md hover:bg-magnolia-900 transition-colors"
+                                >
+                                  <ArrowRight className="h-4 w-4 mr-2" />
+                                  Download PowerPoint File
+                                </a>
+                              </div>
+                            )}
                           </div>
                         ) : isPDF ? (
                           // PDF files: display in iframe
@@ -606,7 +754,7 @@ export default function CoursesPage() {
       )}
 
       {/* Progress Summary */}
-      <div className="bg-gradient-to-br from-magnolia-50 to-white rounded-xl shadow-sm border border-magnolia-100 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-magnolia-100 p-6">
         <div className="flex items-center space-x-3 mb-4">
           <div className="p-2 bg-magnolia-100 rounded-lg">
             <CheckCircle className="h-5 w-5 text-magnolia-700" />
@@ -622,7 +770,7 @@ export default function CoursesPage() {
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-magnolia-600 to-magnolia-700 h-3 rounded-full transition-all duration-500 shadow-sm"
+              className="bg-magnolia-600 h-3 rounded-full transition-all duration-500 shadow-sm"
               style={{
                 width: `${courses.filter(c => c.required).length > 0 ? (courses.filter(c => c.required && c.completed).length / courses.filter(c => c.required).length) * 100 : 0}%`,
               }}

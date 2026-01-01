@@ -168,6 +168,24 @@ export const examService = {
     }
   },
 
+  // Get all exam attempts (for admin/instructor analytics)
+  getAllAttempts(examId?: string): ExamAttempt[] {
+    if (typeof window === 'undefined') return []
+    
+    const stored = localStorage.getItem(ATTEMPTS_STORAGE_KEY)
+    if (!stored) return []
+    
+    try {
+      const attempts: ExamAttempt[] = JSON.parse(stored)
+      if (examId) {
+        return attempts.filter(a => a.examId === examId)
+      }
+      return attempts
+    } catch {
+      return []
+    }
+  },
+
   // Calculate exam score
   calculateScore(exam: Exam, answers: Record<string, string | string[]>): { score: number; passed: boolean } {
     let totalPoints = 0
