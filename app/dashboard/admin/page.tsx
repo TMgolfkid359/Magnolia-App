@@ -312,6 +312,9 @@ function UsersTab({
   const [courses, setCourses] = useState<Course[]>([])
   const [instructors, setInstructors] = useState<PortalUser[]>([])
   
+  // Get pending students - memoized to avoid recalculation
+  const pendingStudents = useMemo(() => userService.getPendingStudents(), [users])
+  
   useEffect(() => {
     // Load courses and instructors for create form
     setCourses(courseService.getAllCourses())
@@ -473,8 +476,6 @@ function UsersTab({
     setEditingFspId(null)
     setFspIdValue('')
   }
-
-  const pendingStudents = useMemo(() => userService.getPendingStudents(), [users])
 
   return (
     <div className="space-y-6">
