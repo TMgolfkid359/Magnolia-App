@@ -101,8 +101,8 @@ export default function DashboardPage() {
       if (course.completed) return
 
       // Check if course has materials that haven't been viewed
-      const progress = progressService.getProgress(course.id, fullUser.id)
-      const materialsViewed = progress?.materialsViewed || 0
+      const progress = progressService.getCourseProgress(course.id, fullUser.id)
+      const materialsViewed = progress?.viewedMaterials?.length || 0
       const totalMaterials = course.materials.length
 
       // Get exams for this course
