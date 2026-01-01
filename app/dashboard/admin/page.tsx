@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X, CheckCircle, MapPin } from 'lucide-react'
@@ -474,8 +474,7 @@ function UsersTab({
     setFspIdValue('')
   }
 
-  // Get pending students for display
-  const pendingStudents = userService.getPendingStudents()
+  const pendingStudents = useMemo(() => userService.getPendingStudents(), [users])
 
   return (
     <div className="space-y-6">
