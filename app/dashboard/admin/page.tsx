@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X, CheckCircle } from 'lucide-react'
+import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X, CheckCircle, MapPin } from 'lucide-react'
 import { userService, PortalUser } from '@/services/userService'
 import { courseService, Course } from '@/services/courseService'
 import { videoService, VideoLesson } from '@/services/videoService'
@@ -296,6 +296,144 @@ function UsersTab({
 }) {
   const [editingFspId, setEditingFspId] = useState<{ userId: string; type: 'student' | 'instructor' } | null>(null)
   const [fspIdValue, setFspIdValue] = useState('')
+  const [isCreatingUser, setIsCreatingUser] = useState(false)
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+  
+  // Create user form state
+  const [newUserFirstName, setNewUserFirstName] = useState('')
+  const [newUserLastName, setNewUserLastName] = useState('')
+  const [newUserEmail, setNewUserEmail] = useState('')
+  const [newUserRole, setNewUserRole] = useState<'student' | 'instructor' | 'admin'>('student')
+  const [newUserLocation, setNewUserLocation] = useState<'LZU' | '2M8' | ''>('')
+  const [newUserSelectedCourses, setNewUserSelectedCourses] = useState<string[]>([])
+  const [newUserSelectedInstructors, setNewUserSelectedInstructors] = useState<string[]>([])
+  const [createUserError, setCreateUserError] = useState('')
+  
+  const [courses, setCourses] = useState<Course[]>([])
+  const [instructors, setInstructors] = useState<PortalUser[]>([])
+  
+  const pendingStudents = userService.getPendingStudents()
+  
+  useEffect(() => {
+    // Load courses and instructors for create form
+    setCourses(courseService.getAllCourses())
+    const allUsers = userService.getAllUsers()
+    setInstructors(allUsers.filter(u => u.role === 'instructor' && u.enrolled))
+  }, [])
+  
+  const handleApproveStudent = (studentId: string) => {
+    userService.approveStudent(studentId)
+    if (onUsersUpdate) {
+      onUsersUpdate()
+    }
+  }
+  
+  const handleDeleteUser = (userId: string) => {
+    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      const success = userService.deleteUser(userId)
+      if (success && onUsersUpdate) {
+        onUsersUpdate()
+      }
+      setDeletingUserId(null)
+    } else {
+      setDeletingUserId(null)
+    }
+  }
+  
+  const handleCreateUser = () => {
+    setCreateUserError('')
+    
+    // Validation
+    if (!newUserFirstName.trim() || !newUserLastName.trim()) {
+      setCreateUserError('Please enter both first and last name')
+      return
+    }
+    
+    if (!newUserEmail.trim() || !newUserEmail.includes('@')) {
+      setCreateUserError('Please enter a valid email address')
+      return
+    }
+    
+    // Check if email already exists
+    const existingUser = userService.getUserByEmail(newUserEmail)
+    if (existingUser) {
+      setCreateUserError('An account with this email already exists')
+      return
+    }
+    
+    // For students, validate location and courses/instructors
+    if (newUserRole === 'student') {
+      if (!newUserLocation) {
+        setCreateUserError('Please select a location for the student')
+        return
+      }
+      if (newUserSelectedCourses.length === 0) {
+        setCreateUserError('Please select at least one course for the student')
+        return
+      }
+      if (newUserSelectedInstructors.length === 0) {
+        setCreateUserError('Please select at least one instructor for the student')
+        return
+      }
+    }
+    
+    // Create the user
+    const newUser = userService.addUser({
+      name: `${newUserFirstName} ${newUserLastName}`,
+      firstName: newUserFirstName,
+      lastName: newUserLastName,
+      email: newUserEmail,
+      role: newUserRole,
+      enrolled: true,
+      enrollmentStatus: newUserRole === 'student' ? 'approved' : undefined, // Students start approved when created by admin
+      enrollmentDate: new Date().toISOString(),
+      location: newUserLocation ? (newUserLocation as 'LZU' | '2M8') : undefined,
+      enrolledCourseIds: newUserRole === 'student' ? newUserSelectedCourses : undefined,
+      assignedInstructorIds: newUserRole === 'student' ? newUserSelectedInstructors : undefined,
+    })
+    
+    // Reset form
+    setNewUserFirstName('')
+    setNewUserLastName('')
+    setNewUserEmail('')
+    setNewUserRole('student')
+    setNewUserLocation('')
+    setNewUserSelectedCourses([])
+    setNewUserSelectedInstructors([])
+    setIsCreatingUser(false)
+    
+    if (onUsersUpdate) {
+      onUsersUpdate()
+    }
+  }
+  
+  const handleCancelCreate = () => {
+    setIsCreatingUser(false)
+    setNewUserFirstName('')
+    setNewUserLastName('')
+    setNewUserEmail('')
+    setNewUserRole('student')
+    setNewUserLocation('')
+    setNewUserSelectedCourses([])
+    setNewUserSelectedInstructors([])
+    setCreateUserError('')
+  }
+  
+  const handleCourseToggle = (courseId: string) => {
+    setNewUserSelectedCourses(prev => 
+      prev.includes(courseId) 
+        ? prev.filter(id => id !== courseId)
+        : [...prev, courseId]
+    )
+  }
+  
+  const handleInstructorToggle = (instructorId: string) => {
+    setNewUserSelectedInstructors(prev => 
+      prev.includes(instructorId) 
+        ? prev.filter(id => id !== instructorId)
+        : [...prev, instructorId]
+    )
+  }
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -339,10 +477,243 @@ function UsersTab({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Enrolled Users ({users.filter(u => u.enrolled).length})</h2>
-      <div className="space-y-3">
-        {users.filter(u => u.enrolled).map((user) => (
+    <div className="space-y-6">
+      {/* Pending Students Section */}
+      {pendingStudents.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Pending Student Approvals</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                {pendingStudents.length} student{pendingStudents.length !== 1 ? 's' : ''} awaiting approval
+              </p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {pendingStudents.map((student) => (
+              <div
+                key={student.id}
+                className="p-4 bg-white border border-yellow-300 rounded-lg"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">{student.name}</h3>
+                    <p className="text-sm text-gray-600">{student.email}</p>
+                    {student.location && (
+                      <div className="mt-1 flex items-center space-x-2">
+                        <MapPin className="h-3 w-3 text-gray-400" />
+                        <p className="text-xs text-gray-600">
+                          Location: {student.location === 'LZU' ? 'Lawrenceville (LZU)' : 'Charles W Baker (2M8)'}
+                        </p>
+                      </div>
+                    )}
+                    {student.enrollmentDate && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Applied: {new Date(student.enrollmentDate).toLocaleDateString()}
+                      </p>
+                    )}
+                    {student.enrolledCourseIds && student.enrolledCourseIds.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Courses: {student.enrolledCourseIds.length} selected
+                      </p>
+                    )}
+                    {student.assignedInstructorIds && student.assignedInstructorIds.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Assigned Instructors: {student.assignedInstructorIds.length}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleApproveStudent(student.id)}
+                    className="ml-4 px-4 py-2 bg-magnolia-600 text-white rounded-md hover:bg-magnolia-700 transition-colors text-sm font-medium"
+                  >
+                    Approve Access
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Enrolled Users Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Enrolled Users ({users.filter(u => {
+            if (!u.enrolled) return false
+            // Show approved students, or all non-students, or legacy students without status
+            if (u.role === 'student') {
+              return u.enrollmentStatus === 'approved' || (!u.enrollmentStatus && u.enrolled)
+            }
+            return true
+          }).length})</h2>
+          <button
+            onClick={() => setIsCreatingUser(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-magnolia-600 text-white rounded-md hover:bg-magnolia-700 transition-colors text-sm font-medium"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Create Account</span>
+          </button>
+        </div>
+        
+        {/* Create User Form */}
+        {isCreatingUser && (
+          <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Account</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newUserFirstName}
+                    onChange={(e) => setNewUserFirstName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-500 focus:border-magnolia-500 text-gray-900"
+                    placeholder="John"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newUserLastName}
+                    onChange={(e) => setNewUserLastName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-500 focus:border-magnolia-500 text-gray-900"
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-500 focus:border-magnolia-500 text-gray-900"
+                  placeholder="john.doe@example.com"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Role <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={newUserRole}
+                  onChange={(e) => {
+                    setNewUserRole(e.target.value as 'student' | 'instructor' | 'admin')
+                    // Clear student-specific fields if role changes
+                    if (e.target.value !== 'student') {
+                      setNewUserLocation('')
+                      setNewUserSelectedCourses([])
+                      setNewUserSelectedInstructors([])
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-500 focus:border-magnolia-500 text-gray-900"
+                >
+                  <option value="student">Student</option>
+                  <option value="instructor">Instructor</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              
+              {newUserRole === 'student' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Location <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={newUserLocation}
+                      onChange={(e) => setNewUserLocation(e.target.value as 'LZU' | '2M8' | '')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-500 focus:border-magnolia-500 text-gray-900"
+                    >
+                      <option value="">Select a location</option>
+                      <option value="LZU">Lawrenceville (LZU)</option>
+                      <option value="2M8">Charles W Baker (2M8)</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Courses <span className="text-red-500">*</span>
+                    </label>
+                    <div className="border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto space-y-2">
+                      {courses.map(course => (
+                        <label key={course.id} className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newUserSelectedCourses.includes(course.id)}
+                            onChange={() => handleCourseToggle(course.id)}
+                            className="w-4 h-4 text-magnolia-600 border-gray-300 rounded focus:ring-magnolia-500"
+                          />
+                          <span className="text-sm text-gray-700">{course.title}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Instructors <span className="text-red-500">*</span>
+                    </label>
+                    <div className="border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto space-y-2">
+                      {instructors.map(instructor => (
+                        <label key={instructor.id} className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newUserSelectedInstructors.includes(instructor.id)}
+                            onChange={() => handleInstructorToggle(instructor.id)}
+                            className="w-4 h-4 text-magnolia-600 border-gray-300 rounded focus:ring-magnolia-500"
+                          />
+                          <span className="text-sm text-gray-700">{instructor.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              {createUserError && (
+                <div className="bg-red-50 border-l-4 border-red-400 text-red-700 px-4 py-3 rounded">
+                  <p className="text-sm">{createUserError}</p>
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleCreateUser}
+                  className="px-4 py-2 bg-magnolia-600 text-white rounded-md hover:bg-magnolia-700 transition-colors text-sm font-medium"
+                >
+                  Create Account
+                </button>
+                <button
+                  onClick={handleCancelCreate}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors text-sm font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="space-y-3">
+        {users.filter(u => {
+          if (!u.enrolled) return false
+          // Show approved students, or all non-students, or legacy students without status
+          if (u.role === 'student') {
+            return u.enrollmentStatus === 'approved' || (!u.enrollmentStatus && u.enrolled)
+          }
+          return true
+        }).map((user) => (
           <div
             key={user.id}
             className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -354,6 +725,14 @@ function UsersTab({
                   <div>
                     <h3 className="font-semibold text-gray-900">{user.name}</h3>
                     <p className="text-sm text-gray-600">{user.email}</p>
+                    {user.location && user.role === 'student' && (
+                      <div className="mt-1 flex items-center space-x-2">
+                        <MapPin className="h-3 w-3 text-gray-400" />
+                        <p className="text-xs text-gray-600">
+                          Location: {user.location === 'LZU' ? 'Lawrenceville (LZU)' : 'Charles W Baker (2M8)'}
+                        </p>
+                      </div>
+                    )}
                     {user.enrollmentDate && (
                       <p className="text-xs text-gray-500">
                         Enrolled: {new Date(user.enrollmentDate).toLocaleDateString()}
@@ -375,6 +754,13 @@ function UsersTab({
                   <option value="instructor">Instructor</option>
                   <option value="admin">Admin</option>
                 </select>
+                <button
+                  onClick={() => handleDeleteUser(user.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                  title="Delete user"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             </div>
             

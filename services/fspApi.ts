@@ -10,7 +10,7 @@ const apiClient = axios.create({
   baseURL: FSP_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${FSP_API_KEY}`,
+    'x-subscription-key': FSP_API_KEY,
   },
 })
 

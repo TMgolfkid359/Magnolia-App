@@ -40,6 +40,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // For demo, password is always 'password'
     if (foundUser && password === 'password') {
+      // Check if student is approved (instructors and admins don't need approval)
+      if (foundUser.role === 'student') {
+        const isApproved = foundUser.enrollmentStatus === 'approved' || 
+                          (!foundUser.enrollmentStatus && foundUser.enrolled) // Legacy users without status
+        if (!isApproved) {
+          throw new Error('Your account is pending approval. Please wait for your instructor or administrator to approve your account.')
+        }
+      }
+      
       const user = {
         id: foundUser.id,
         name: foundUser.name,

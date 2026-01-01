@@ -99,6 +99,15 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-8 pt-6 border-t border-gray-200">
+          <p className="text-sm text-gray-600 text-center mb-4">
+            New to Magnolia?{' '}
+            <a
+              href="/welcome"
+              className="text-magnolia-700 hover:text-magnolia-800 font-medium"
+            >
+              Create an account
+            </a>
+          </p>
           <p className="text-xs text-gray-500 text-center mb-3 font-medium">Demo Credentials</p>
           <div className="space-y-2 text-xs text-gray-600">
             <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-md">

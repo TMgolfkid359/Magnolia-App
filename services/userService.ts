@@ -1,16 +1,25 @@
 // User Management Service
 // Stores users in localStorage (can be replaced with API calls)
 
+export type EnrollmentStatus = 'pending' | 'approved'
+export type Location = 'LZU' | '2M8'  // Lawrenceville (LZU) or Charles W Baker (2M8)
+
 export interface PortalUser {
   id: string
   name: string
+  firstName?: string
+  lastName?: string
   email: string
   role: 'student' | 'instructor' | 'admin'
   enrolled: boolean
+  enrollmentStatus?: EnrollmentStatus  // 'pending' for new students, 'approved' for verified students
   enrollmentDate?: string
   lastLogin?: string
+  location?: Location  // Location: Lawrenceville (LZU) or Charles W Baker (2M8)
   fspStudentId?: string  // Flight Schedule Pro student ID
   fspInstructorId?: string  // Flight Schedule Pro instructor ID
+  enrolledCourseIds?: string[]  // Array of course IDs the user is enrolled in
+  assignedInstructorIds?: string[]  // Array of instructor IDs assigned to the user
 }
 
 const STORAGE_KEY = 'magnolia_users'
@@ -20,14 +29,21 @@ const defaultUsers: PortalUser[] = [
   {
     id: '1',
     name: 'John Student',
+    firstName: 'John',
+    lastName: 'Student',
     email: 'student@example.com',
     role: 'student',
     enrolled: true,
+    enrollmentStatus: 'approved',
     enrollmentDate: '2024-01-01',
+    enrolledCourseIds: ['indoc-1', 'ground-1', 'preflight-1'],
+    assignedInstructorIds: ['2'],
   },
   {
     id: '2',
     name: 'Jane Instructor',
+    firstName: 'Jane',
+    lastName: 'Instructor',
     email: 'instructor@example.com',
     role: 'instructor',
     enrolled: true,
@@ -36,6 +52,8 @@ const defaultUsers: PortalUser[] = [
   {
     id: '3',
     name: 'Admin User',
+    firstName: 'Admin',
+    lastName: 'User',
     email: 'admin@magnolia.com',
     role: 'admin',
     enrolled: true,
@@ -120,6 +138,30 @@ export const userService = {
   // Get enrolled users only
   getEnrolledUsers(): PortalUser[] {
     return this.getAllUsers().filter(u => u.enrolled)
+  },
+
+  // Get pending students (awaiting approval)
+  getPendingStudents(): PortalUser[] {
+    return this.getAllUsers().filter(
+      u => u.role === 'student' && 
+      (u.enrollmentStatus === 'pending' || (!u.enrollmentStatus && u.enrolled))
+    )
+  },
+
+  // Get students assigned to an instructor
+  getStudentsByInstructor(instructorId: string): PortalUser[] {
+    return this.getAllUsers().filter(
+      u => u.role === 'student' && 
+      u.assignedInstructorIds?.includes(instructorId)
+    )
+  },
+
+  // Approve a student (grant access)
+  approveStudent(studentId: string): PortalUser | null {
+    return this.updateUser(studentId, { 
+      enrollmentStatus: 'approved',
+      enrolled: true 
+    })
   },
 
   // Update FSP IDs for a user

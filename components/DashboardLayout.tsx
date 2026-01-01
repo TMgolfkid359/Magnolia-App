@@ -24,7 +24,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ...(user?.role === 'instructor' || user?.role === 'admin' 
       ? [{ href: '/dashboard/analytics', label: 'Analytics', icon: TrendingUp }] 
       : []),
+    ...(user?.role === 'instructor' 
+      ? [{ href: '/dashboard/instructor', label: 'My Students', icon: User }] 
+      : []),
     ...(user?.role === 'admin' ? [{ href: '/dashboard/admin', label: 'Admin', icon: Settings }] : []),
+    { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ]
 
   return (
