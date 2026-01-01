@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X, CheckCircle, MapPin } from 'lucide-react'
@@ -312,10 +312,6 @@ function UsersTab({
   const [courses, setCourses] = useState<Course[]>([])
   const [instructors, setInstructors] = useState<PortalUser[]>([])
   
-  const pendingStudents = useMemo(() => {
-    return userService.getPendingStudents()
-  }, [users])
-  
   useEffect(() => {
     // Load courses and instructors for create form
     setCourses(courseService.getAllCourses())
@@ -477,6 +473,9 @@ function UsersTab({
     setEditingFspId(null)
     setFspIdValue('')
   }
+
+  // Get pending students for display
+  const pendingStudents = userService.getPendingStudents()
 
   return (
     <div className="space-y-6">
