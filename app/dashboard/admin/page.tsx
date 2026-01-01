@@ -311,15 +311,21 @@ function UsersTab({
   
   const [courses, setCourses] = useState<Course[]>([])
   const [instructors, setInstructors] = useState<PortalUser[]>([])
-  
-  const pendingStudents = userService.getPendingStudents()
+  const [pendingStudents, setPendingStudents] = useState<PortalUser[]>([])
   
   useEffect(() => {
     // Load courses and instructors for create form
     setCourses(courseService.getAllCourses())
     const allUsers = userService.getAllUsers()
     setInstructors(allUsers.filter(u => u.role === 'instructor' && u.enrolled))
+    // Load pending students
+    setPendingStudents(userService.getPendingStudents())
   }, [])
+  
+  // Update pending students when users prop changes
+  useEffect(() => {
+    setPendingStudents(userService.getPendingStudents())
+  }, [users])
   
   const handleApproveStudent = (studentId: string) => {
     userService.approveStudent(studentId)
@@ -852,7 +858,14 @@ function UsersTab({
             </div>
           </div>
         ))}
-        {users.filter(u => u.enrolled).length === 0 && (
+        {users.filter(u => {
+          if (!u.enrolled) return false
+          // Show approved students, or all non-students, or legacy students without status
+          if (u.role === 'student') {
+            return u.enrollmentStatus === 'approved' || (!u.enrollmentStatus && u.enrolled)
+          }
+          return true
+        }).length === 0 && (
           <div className="text-center py-8 text-gray-500">No enrolled users</div>
         )}
       </div>
