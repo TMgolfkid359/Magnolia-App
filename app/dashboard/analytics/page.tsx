@@ -44,36 +44,6 @@ export default function AnalyticsPage() {
   const [selectedStudent, setSelectedStudent] = useState<string>('all')
   const [selectedExam, setSelectedExam] = useState<string>('all')
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/')
-    }
-    // Only allow instructors and admins
-    if (!authLoading && user && user.role !== 'instructor' && user.role !== 'admin') {
-      router.push('/dashboard/courses')
-    }
-  }, [user, authLoading, router])
-
-  useEffect(() => {
-    if (authLoading || !user) return
-    if (user.role !== 'instructor' && user.role !== 'admin') return
-
-    // Load courses, exams, and students
-    const allCourses = courseService.getAllCourses()
-    const allExams = examService.getAllExams()
-    const allUsers = userService.getAllUsers()
-    const studentUsers = allUsers.filter(u => u.role === 'student')
-
-    setCourses(allCourses)
-    setExams(allExams)
-    setStudents(studentUsers)
-
-    // Load time data
-    loadTimeData(allCourses, studentUsers)
-    // Load exam data
-    loadExamData(allExams, studentUsers)
-  }, [user, authLoading, selectedCourse, selectedStudent, selectedExam])
-
   const loadTimeData = (allCourses: Course[], allStudents: PortalUser[]) => {
     const allProgress = progressService.getAllUsersProgress()
     const data: StudentTimeData[] = []
@@ -171,6 +141,36 @@ export default function AnalyticsPage() {
     })
     setExamData(data)
   }
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/')
+    }
+    // Only allow instructors and admins
+    if (!authLoading && user && user.role !== 'instructor' && user.role !== 'admin') {
+      router.push('/dashboard/courses')
+    }
+  }, [user, authLoading, router])
+
+  useEffect(() => {
+    if (authLoading || !user) return
+    if (user.role !== 'instructor' && user.role !== 'admin') return
+
+    // Load courses, exams, and students
+    const allCourses = courseService.getAllCourses()
+    const allExams = examService.getAllExams()
+    const allUsers = userService.getAllUsers()
+    const studentUsers = allUsers.filter(u => u.role === 'student')
+
+    setCourses(allCourses)
+    setExams(allExams)
+    setStudents(studentUsers)
+
+    // Load time data
+    loadTimeData(allCourses, studentUsers)
+    // Load exam data
+    loadExamData(allExams, studentUsers)
+  }, [user, authLoading, selectedCourse, selectedStudent, selectedExam])
 
   const formatTime = (seconds: number): string => {
     if (seconds < 60) return `${seconds}s`
