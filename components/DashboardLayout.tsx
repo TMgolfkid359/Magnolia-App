@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { BookOpen, Video, LogOut, User, Settings, FileText, TrendingUp } from 'lucide-react'
+import { BookOpen, Video, LogOut, User, Settings, FileText, TrendingUp, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import MagnoliaLogo from './MagnoliaLogo'
@@ -18,6 +18,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const navItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/dashboard/courses', label: 'Courses', icon: BookOpen },
     { href: '/dashboard/videos', label: 'Video Portal', icon: Video },
     { href: '/dashboard/exams', label: 'Exams', icon: FileText },
@@ -70,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href || (item.href === '/dashboard' && pathname === '/dashboard')
                 return (
                   <Link
                     key={item.href}
