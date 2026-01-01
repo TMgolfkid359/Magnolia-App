@@ -405,6 +405,7 @@ export default function AnalyticsPage() {
           </table>
         </div>
       </div>
+        </>
       )}
 
       {activeTab === 'exams' && (
