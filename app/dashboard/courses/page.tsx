@@ -7,6 +7,7 @@ import { BookOpen, CheckCircle, Circle, FileText, Clock, Play, ArrowRight, X, Ch
 import { courseService, Course } from '@/services/courseService'
 import { progressService } from '@/services/progressService'
 import { examService } from '@/services/examService'
+import JSZip from 'jszip'
 
 interface PPTXSlide {
   number: number
@@ -128,7 +129,7 @@ export default function CoursesPage() {
     return () => clearInterval(interval)
   }, [selectedCourse?.id, user])
 
-  // Load PPTX slides when PowerPoint material is displayed
+  // Load PPTX slides client-side when PowerPoint material is displayed
   useEffect(() => {
     if (!selectedCourse) {
       setPptxSlides([])
@@ -151,33 +152,116 @@ export default function CoursesPage() {
                         material.url?.toLowerCase().endsWith('.pptx')
 
     if (isPowerPoint && material.fileData) {
-      loadPptxSlides(material.fileData)
+      loadPptxSlidesClientSide(material.fileData)
     } else {
       setPptxSlides([])
       setCurrentSlideIndex(0)
     }
   }, [selectedCourse, currentMaterialIndex])
 
-  const loadPptxSlides = async (fileData: string) => {
+  const loadPptxSlidesClientSide = async (fileData: string) => {
     setLoadingPptx(true)
     try {
-      const response = await fetch('/api/convert-pptx', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ fileData }),
+      // Remove data URL prefix if present
+      const base64Data = fileData.includes(',') 
+        ? fileData.split(',')[1] 
+        : fileData
+
+      // Decode base64 to binary
+      const binaryString = atob(base64Data)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+
+      // Parse PPTX (which is a ZIP file)
+      const zip = await JSZip.loadAsync(bytes)
+      
+      // Get slide files
+      const slideFiles: string[] = []
+      zip.forEach((relativePath) => {
+        if (relativePath.startsWith('ppt/slides/slide') && relativePath.endsWith('.xml')) {
+          slideFiles.push(relativePath)
+        }
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to convert PPTX')
+      // Sort slides by number
+      slideFiles.sort((a, b) => {
+        const numA = parseInt(a.match(/slide(\d+)\.xml/)?.[1] || '0')
+        const numB = parseInt(b.match(/slide(\d+)\.xml/)?.[1] || '0')
+        return numA - numB
+      })
+
+      // Extract slide content
+      const slides: PPTXSlide[] = []
+
+      for (let i = 0; i < slideFiles.length; i++) {
+        const slideFile = slideFiles[i]
+        const slideXml = await zip.file(slideFile)?.async('string')
+        
+        if (slideXml) {
+          // Extract text content from XML
+          const textMatches = slideXml.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) || []
+          const texts = textMatches.map(match => {
+            const textMatch = match.match(/<a:t[^>]*>([^<]*)<\/a:t>/)
+            return textMatch ? textMatch[1] : ''
+          }).filter(Boolean)
+
+          // Extract image references
+          const imageRefs: string[] = []
+          const embedMatches = slideXml.match(/r:embed="([^"]+)"/g) || []
+          embedMatches.forEach(match => {
+            const refMatch = match.match(/r:embed="([^"]+)"/)
+            if (refMatch) {
+              imageRefs.push(refMatch[1])
+            }
+          })
+
+          // Get relationship file for this slide
+          const slideNum = slideFile.match(/slide(\d+)\.xml/)?.[1] || ''
+          const relFile = `ppt/slides/_rels/slide${slideNum}.xml.rels`
+          const relXml = await zip.file(relFile)?.async('string')
+          
+          const images: string[] = []
+          if (relXml) {
+            // Map relationship IDs to media files
+            for (const refId of imageRefs) {
+              const relMatch = relXml.match(new RegExp(`Id="${refId}"[^>]*Target="([^"]+)"`))
+              if (relMatch) {
+                const mediaPath = relMatch[1].replace('..', 'ppt')
+                const imageFile = zip.file(mediaPath)
+                if (imageFile) {
+                  const imageData = await imageFile.async('base64')
+                  const imageType = mediaPath.endsWith('.png') ? 'png' : 
+                                   mediaPath.endsWith('.gif') ? 'gif' : 'jpeg'
+                  images.push(`data:image/${imageType};base64,${imageData}`)
+                }
+              }
+            }
+          } else {
+            // Fallback: try direct media path
+            for (const ref of imageRefs) {
+              const imagePath = `ppt/media/${ref}`
+              const imageFile = zip.file(imagePath)
+              if (imageFile) {
+                const imageData = await imageFile.async('base64')
+                const imageType = imagePath.endsWith('.png') ? 'png' : 
+                                 imagePath.endsWith('.gif') ? 'gif' : 'jpeg'
+                images.push(`data:image/${imageType};base64,${imageData}`)
+              }
+            }
+          }
+
+          slides.push({
+            number: i + 1,
+            content: texts.join('\n'),
+            images,
+          })
+        }
       }
 
-      const data = await response.json()
-      if (data.success && data.slides) {
-        setPptxSlides(data.slides)
-        setCurrentSlideIndex(0)
-      }
+      setPptxSlides(slides)
+      setCurrentSlideIndex(0)
     } catch (error) {
       console.error('Error loading PPTX slides:', error)
       setPptxSlides([])
@@ -462,7 +546,7 @@ export default function CoursesPage() {
                       <h3 className="text-xl font-semibold text-gray-900">{material.title}</h3>
                       {material.fileData ? (
                         isPowerPoint ? (
-                          // PowerPoint files: display slides
+                          // PowerPoint files: display slides client-side
                           <div className="space-y-4">
                             {loadingPptx ? (
                               <div className="border border-gray-200 rounded-lg p-8 text-center">
@@ -496,7 +580,7 @@ export default function CoursesPage() {
                                       </button>
                                     </div>
                                   </div>
-                                  <div className="p-8 min-h-[500px] flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-white">
+                                  <div className="p-8 min-h-[500px] flex flex-col items-center justify-center bg-gray-50">
                                     {pptxSlides[currentSlideIndex] && (
                                       <div className="w-full max-w-4xl space-y-6">
                                         {/* Images */}
