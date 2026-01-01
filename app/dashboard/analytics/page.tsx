@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Clock, Users, BookOpen, TrendingUp, FileText, CheckCircle, XCircle, Award } from 'lucide-react'
@@ -44,103 +44,6 @@ export default function AnalyticsPage() {
   const [selectedStudent, setSelectedStudent] = useState<string>('all')
   const [selectedExam, setSelectedExam] = useState<string>('all')
 
-  const loadTimeData = useCallback((allCourses: Course[], allStudents: PortalUser[]) => {
-    const allProgress = progressService.getAllUsersProgress()
-    const data: StudentTimeData[] = []
-
-    allProgress.forEach(progress => {
-      // Filter by course if selected
-      if (selectedCourse !== 'all' && progress.courseId !== selectedCourse) return
-
-      // Filter by student if selected
-      if (selectedStudent !== 'all' && progress.userId !== selectedStudent) return
-
-      const course = allCourses.find(c => c.id === progress.courseId)
-      const student = allStudents.find(s => s.id === progress.userId)
-
-      // Only show student data
-      if (!course || !student || student.role !== 'student') return
-
-      const timeSpent = progressService.getTimeSpent(progress.courseId, progress.userId)
-
-      data.push({
-        userId: progress.userId,
-        userName: student.name,
-        userEmail: student.email,
-        courseId: progress.courseId,
-        courseTitle: course.title,
-        timeSpentSeconds: timeSpent,
-        lastViewedAt: progress.lastViewedAt,
-      })
-    })
-
-    // Sort by time spent (descending)
-    data.sort((a, b) => b.timeSpentSeconds - a.timeSpentSeconds)
-    setTimeData(data)
-  }, [selectedCourse, selectedStudent])
-
-  const loadExamData = useCallback((allExams: Exam[], allStudents: PortalUser[]) => {
-    const allAttempts = examService.getAllAttempts()
-    const dataMap = new Map<string, ExamStatisticsData>()
-
-    allAttempts.forEach(attempt => {
-      // Filter by exam if selected
-      if (selectedExam !== 'all' && attempt.examId !== selectedExam) return
-
-      // Filter by student if selected
-      if (selectedStudent !== 'all' && attempt.userId !== selectedStudent) return
-
-      const exam = allExams.find(e => e.id === attempt.examId)
-      const student = allStudents.find(s => s.id === attempt.userId)
-
-      // Only show student data
-      if (!exam || !student || student.role !== 'student') return
-
-      const key = `${attempt.examId}-${attempt.userId}`
-      if (!dataMap.has(key)) {
-        dataMap.set(key, {
-          examId: exam.id,
-          examTitle: exam.title,
-          studentId: student.id,
-          studentName: student.name,
-          studentEmail: student.email,
-          attempts: [],
-          passed: false,
-        })
-      }
-
-      const data = dataMap.get(key)!
-      data.attempts.push(attempt)
-      
-      // Update best score and passed status
-      if (attempt.score !== undefined) {
-        if (data.bestScore === undefined || attempt.score > data.bestScore) {
-          data.bestScore = attempt.score
-        }
-        if (attempt.passed) {
-          data.passed = true
-        }
-      }
-
-      // Update last attempt date
-      if (attempt.completedAt) {
-        const attemptDate = new Date(attempt.completedAt)
-        if (!data.lastAttemptDate || attemptDate > new Date(data.lastAttemptDate)) {
-          data.lastAttemptDate = attempt.completedAt
-        }
-      }
-    })
-
-    const data = Array.from(dataMap.values())
-    // Sort by exam title, then by student name
-    data.sort((a, b) => {
-      if (a.examTitle !== b.examTitle) {
-        return a.examTitle.localeCompare(b.examTitle)
-      }
-      return a.studentName.localeCompare(b.studentName)
-    })
-    setExamData(data)
-  }, [selectedExam, selectedStudent])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -167,11 +70,103 @@ export default function AnalyticsPage() {
     setStudents(studentUsers)
 
     // Load time data
-    loadTimeData(allCourses, studentUsers)
-    // Load exam data
-    loadExamData(allExams, studentUsers)
-  }, [user, authLoading, selectedCourse, selectedStudent, selectedExam, loadTimeData, loadExamData])
+    const allProgress = progressService.getAllUsersProgress()
+    const timeDataArray: StudentTimeData[] = []
 
+    allProgress.forEach(progress => {
+      // Filter by course if selected
+      if (selectedCourse !== 'all' && progress.courseId !== selectedCourse) return
+
+      // Filter by student if selected
+      if (selectedStudent !== 'all' && progress.userId !== selectedStudent) return
+
+      const course = allCourses.find(c => c.id === progress.courseId)
+      const student = studentUsers.find(s => s.id === progress.userId)
+
+      // Only show student data
+      if (!course || !student || student.role !== 'student') return
+
+      const timeSpent = progressService.getTimeSpent(progress.courseId, progress.userId)
+
+      timeDataArray.push({
+        userId: progress.userId,
+        userName: student.name,
+        userEmail: student.email,
+        courseId: progress.courseId,
+        courseTitle: course.title,
+        timeSpentSeconds: timeSpent,
+        lastViewedAt: progress.lastViewedAt,
+      })
+    })
+
+    // Sort by time spent (descending)
+    timeDataArray.sort((a, b) => b.timeSpentSeconds - a.timeSpentSeconds)
+    setTimeData(timeDataArray)
+
+    // Load exam data
+    const allAttempts = examService.getAllAttempts()
+    const examDataMap = new Map<string, ExamStatisticsData>()
+
+    allAttempts.forEach(attempt => {
+      // Filter by exam if selected
+      if (selectedExam !== 'all' && attempt.examId !== selectedExam) return
+
+      // Filter by student if selected
+      if (selectedStudent !== 'all' && attempt.userId !== selectedStudent) return
+
+      const exam = allExams.find(e => e.id === attempt.examId)
+      const student = studentUsers.find(s => s.id === attempt.userId)
+
+      // Only show student data
+      if (!exam || !student || student.role !== 'student') return
+
+      const key = `${attempt.examId}-${attempt.userId}`
+      if (!examDataMap.has(key)) {
+        examDataMap.set(key, {
+          examId: exam.id,
+          examTitle: exam.title,
+          studentId: student.id,
+          studentName: student.name,
+          studentEmail: student.email,
+          attempts: [],
+          passed: false,
+        })
+      }
+
+      const data = examDataMap.get(key)!
+      data.attempts.push(attempt)
+      
+      // Update best score and passed status
+      if (attempt.score !== undefined) {
+        if (data.bestScore === undefined || attempt.score > data.bestScore) {
+          data.bestScore = attempt.score
+        }
+        if (attempt.passed) {
+          data.passed = true
+        }
+      }
+
+      // Update last attempt date
+      if (attempt.completedAt) {
+        const attemptDate = new Date(attempt.completedAt)
+        if (!data.lastAttemptDate || attemptDate > new Date(data.lastAttemptDate)) {
+          data.lastAttemptDate = attempt.completedAt
+        }
+      }
+    })
+
+    const examDataArray = Array.from(examDataMap.values())
+    // Sort by exam title, then by student name
+    examDataArray.sort((a, b) => {
+      if (a.examTitle !== b.examTitle) {
+        return a.examTitle.localeCompare(b.examTitle)
+      }
+      return a.studentName.localeCompare(b.studentName)
+    })
+    setExamData(examDataArray)
+  }, [user, authLoading, selectedCourse, selectedStudent, selectedExam])
+
+  // Helper functions
   const formatTime = (seconds: number): string => {
     if (seconds < 60) return `${seconds}s`
     const minutes = Math.floor(seconds / 60)
