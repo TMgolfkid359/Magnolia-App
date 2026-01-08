@@ -162,13 +162,20 @@ function ExamsPageContent() {
             <p className="text-gray-600 mb-6">
               Passing Score: {selectedExam?.passingScore}%
             </p>
-            <Link
-              href="/dashboard/exams"
+            <button
+              onClick={() => {
+                setSelectedExam(null)
+                setAttempt(null)
+                setAnswers({})
+                setTimeRemaining(null)
+                // Clear URL parameters and navigate
+                router.replace('/dashboard/exams')
+              }}
               className="inline-flex items-center space-x-2 bg-magnolia-800 text-white px-6 py-2 rounded-md hover:bg-magnolia-900"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Back to Exams</span>
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -198,7 +205,10 @@ function ExamsPageContent() {
                 onClick={() => {
                   setSelectedExam(null)
                   setAttempt(null)
-                  router.push('/dashboard/exams')
+                  setAnswers({})
+                  setTimeRemaining(null)
+                  // Clear URL parameters and navigate
+                  router.replace('/dashboard/exams')
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
