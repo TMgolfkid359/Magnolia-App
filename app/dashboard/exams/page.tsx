@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { FileText, Clock, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
@@ -8,7 +8,7 @@ import { examService, Exam, ExamAttempt } from '@/services/examService'
 import { progressService } from '@/services/progressService'
 import Link from 'next/link'
 
-export default function ExamsPage() {
+function ExamsPageContent() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -539,6 +539,18 @@ export default function ExamsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ExamsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-magnolia-600"></div>
+      </div>
+    }>
+      <ExamsPageContent />
+    </Suspense>
   )
 }
 
