@@ -1986,27 +1986,32 @@ function LibraryTab({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">File Library</h2>
-          <p className="text-gray-600 mt-1">Manage documents and folders</p>
-        </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={() => setShowFolderModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            <span>New Folder</span>
-          </button>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-magnolia-600 text-white rounded-lg hover:bg-magnolia-700 transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Upload File</span>
-          </button>
+      {/* Header with Admin Badge */}
+      <div className="bg-magnolia-50 border-l-4 border-magnolia-600 p-4 rounded-lg">
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="flex items-center space-x-2 mb-1">
+              <h2 className="text-2xl font-bold text-gray-900">File Library Management</h2>
+              <span className="px-2 py-1 bg-magnolia-600 text-white text-xs font-semibold rounded">ADMIN</span>
+            </div>
+            <p className="text-gray-600">Upload, organize, and manage documents and folders for all users</p>
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowFolderModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              <span>New Folder</span>
+            </button>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-magnolia-600 text-white rounded-lg hover:bg-magnolia-700 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Upload File</span>
+            </button>
+          </div>
         </div>
       </div>
 
