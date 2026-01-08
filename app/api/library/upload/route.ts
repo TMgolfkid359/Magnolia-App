@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File
     const folderPath = formData.get('folderPath') as string | null
     const uploadedBy = formData.get('uploadedBy') as string
+    const visibility = (formData.get('visibility') as 'all' | 'instructor') || 'all'
 
     if (!file) {
       return NextResponse.json(
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
       uploadedBy,
       data: base64Data, // Store file as base64 in localStorage
       url: `/api/library/file/${file.name}`, // API endpoint to serve the file
+      visibility, // Visibility setting: 'all' or 'instructor'
     })
 
     return NextResponse.json({

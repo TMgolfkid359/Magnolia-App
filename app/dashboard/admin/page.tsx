@@ -1854,6 +1854,7 @@ function LibraryTab({ userId }: { userId: string }) {
   const [newFolderName, setNewFolderName] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [fileVisibility, setFileVisibility] = useState<'all' | 'instructor'>('all')
 
   useEffect(() => {
     loadFiles()
@@ -1886,6 +1887,7 @@ function LibraryTab({ userId }: { userId: string }) {
       formData.append('file', uploadFile)
       formData.append('folderPath', currentFolderPath || '')
       formData.append('uploadedBy', userId)
+      formData.append('visibility', fileVisibility)
 
       const response = await fetch('/api/library/upload', {
         method: 'POST',
@@ -1896,6 +1898,7 @@ function LibraryTab({ userId }: { userId: string }) {
       if (data.success) {
         setShowUploadModal(false)
         setUploadFile(null)
+        setFileVisibility('all')
         loadFiles()
       } else {
         alert(data.error || 'Failed to upload file')
@@ -2095,6 +2098,11 @@ function LibraryTab({ userId }: { userId: string }) {
                       </a>
                       <p className="text-sm text-gray-500">
                         {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}
+                        {file.visibility === 'instructor' && (
+                          <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                            Instructor Only
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -2122,6 +2130,24 @@ function LibraryTab({ userId }: { userId: string }) {
               onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
               className="w-full mb-4 p-2 border border-gray-300 rounded-lg"
             />
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Visibility
+              </label>
+              <select
+                value={fileVisibility}
+                onChange={(e) => setFileVisibility(e.target.value as 'all' | 'instructor')}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              >
+                <option value="all">All Users</option>
+                <option value="instructor">Instructors Only</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {fileVisibility === 'all' 
+                  ? 'All users (students, instructors, admins) can view this file'
+                  : 'Only instructors and admins can view this file'}
+              </p>
+            </div>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => {

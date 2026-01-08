@@ -9,6 +9,7 @@ export interface LibraryFile {
   uploadedBy: string  // User ID who uploaded
   url?: string  // Public URL to access the file
   data?: string  // Base64 encoded file data (for local storage)
+  visibility?: 'all' | 'instructor'  // Who can view this file: 'all' or 'instructor'
 }
 
 export interface LibraryFolder {
@@ -58,6 +59,24 @@ export const fileLibraryService = {
   // Get all files
   getAllFiles(): LibraryFile[] {
     return getStoredFiles()
+  },
+
+  // Get files filtered by visibility based on user role
+  getFilesForUser(userRole: 'student' | 'instructor' | 'admin'): LibraryFile[] {
+    const allFiles = this.getAllFiles()
+    if (userRole === 'admin') {
+      return allFiles // Admins can see everything
+    }
+    // Filter files based on visibility
+    return allFiles.filter(file => {
+      // If no visibility is set, default to 'all'
+      const visibility = file.visibility || 'all'
+      if (visibility === 'all') {
+        return true
+      }
+      // Only instructors and admins can see 'instructor' files
+      return userRole === 'instructor'
+    })
   },
 
   // Get all folders
