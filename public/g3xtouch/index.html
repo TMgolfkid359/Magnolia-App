@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G3X Touch Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #g3x-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .error-message {
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .info-banner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+            color: #333;
+        }
+    </style>
+    <link rel="stylesheet" href="G3XTouch.css" />
+</head>
+<body>
+    <div class="info-banner">
+        <strong>G3X Touch Simulator</strong> - Note: Full functionality requires Microsoft Flight Simulator SDK
+    </div>
+    <div id="g3x-container">
+        <div id="Mainframe">
+            <div id="Electricity" state="off"/>
+        </div>
+    </div>
+    
+    <!-- Mock MSFS SDK stubs for basic functionality -->
+    <script>
+        // Create minimal stubs for MSFS SDK if not available
+        if (typeof window.msfsSdk === 'undefined') {
+            console.warn('MSFS SDK not available - using mock stubs');
+            window.msfsSdk = {
+                DisplayComponent: class {
+                    constructor() {}
+                    render() { return null; }
+                },
+                FSComponent: {
+                    buildComponent: () => null,
+                    Fragment: {},
+                    parseCssClassesFromString: () => []
+                },
+                SetSubject: { create: () => ({ add: () => {}, delete: () => {} }) },
+                SubscribableUtils: { toSubscribable: (val) => val }
+            };
+        }
+        
+        if (typeof window.msfsGarminsdk === 'undefined') {
+            console.warn('Garmin SDK not available - using mock stubs');
+            window.msfsGarminsdk = {
+                TouchButtonOnTouchedAction: { Prime: 'prime' }
+            };
+        }
+    </script>
+    
+    <!-- Load G3X Touch libraries and main script -->
+    <script src="Libraries/msfssdk.js"></script>
+    <script src="Libraries/garminsdk.js"></script>
+    <script src="G3XTouch.js"></script>
+    
+    <script>
+        // Initialize G3X Touch if available
+        if (typeof g3xtouch !== 'undefined') {
+            try {
+                // Attempt to initialize the instrument
+                console.log('G3X Touch loaded');
+            } catch (error) {
+                console.error('Error initializing G3X Touch:', error);
+                document.getElementById('g3x-container').innerHTML = 
+                    '<div class="error-message">G3X Touch requires Microsoft Flight Simulator SDK to function fully.<br>Visual assets loaded successfully.</div>';
+            }
+        } else {
+            document.getElementById('g3x-container').innerHTML = 
+                '<div class="error-message">G3X Touch script not available.<br>Please ensure all files are present.</div>';
+        }
+    </script>
+</body>
+</html>
+

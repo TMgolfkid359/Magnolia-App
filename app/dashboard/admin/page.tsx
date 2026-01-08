@@ -1875,35 +1875,8 @@ function InteractiveToolsTab() {
 
 // G3X Touch Simulator Component
 function G3XTouchSimulator({ onBack }: { onBack: () => void }) {
-  const [altitude, setAltitude] = useState(3500)
-  const [heading, setHeading] = useState(180)
-  const [airspeed, setAirspeed] = useState(120)
-  const [verticalSpeed, setVerticalSpeed] = useState(0)
-  const [attitude, setAttitude] = useState({ pitch: 0, roll: 0 })
-  const [isPowerOn, setIsPowerOn] = useState(true)
-
-  const handleControlChange = (control: string, value: number) => {
-    switch (control) {
-      case 'altitude':
-        setAltitude(Math.max(0, Math.min(50000, value)))
-        break
-      case 'heading':
-        setHeading((value % 360 + 360) % 360)
-        break
-      case 'airspeed':
-        setAirspeed(Math.max(0, Math.min(300, value)))
-        break
-      case 'verticalSpeed':
-        setVerticalSpeed(Math.max(-6000, Math.min(6000, value)))
-        break
-      case 'pitch':
-        setAttitude(prev => ({ ...prev, pitch: Math.max(-90, Math.min(90, value)) }))
-        break
-      case 'roll':
-        setAttitude(prev => ({ ...prev, roll: Math.max(-60, Math.min(60, value)) }))
-        break
-    }
-  }
+  const [useMSFSVersion, setUseMSFSVersion] = useState(true)
+  const [iframeLoaded, setIframeLoaded] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -1911,7 +1884,7 @@ function G3XTouchSimulator({ onBack }: { onBack: () => void }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">G3X Touch Instruments</h2>
-          <p className="text-gray-600 text-sm mt-1">Interactive Garmin G3X Touch Simulator</p>
+          <p className="text-gray-600 text-sm mt-1">Working Title G3X Touch Simulator from Microsoft Flight Simulator</p>
         </div>
         <button
           onClick={onBack}
@@ -1921,241 +1894,67 @@ function G3XTouchSimulator({ onBack }: { onBack: () => void }) {
         </button>
       </div>
 
-      {/* Power Toggle */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-700">Power</span>
-          <button
-            onClick={() => setIsPowerOn(!isPowerOn)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              isPowerOn ? 'bg-magnolia-600' : 'bg-gray-300'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                isPowerOn ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
+      {/* Info Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3 flex-1">
+            <p className="text-sm text-blue-700">
+              <strong>Note:</strong> The G3X Touch instrument requires Microsoft Flight Simulator SDK to function fully. 
+              The visual assets and interface are loaded from the Working Title G3X Touch package. 
+              Some features may not work without MSFS running.
+            </p>
+          </div>
         </div>
       </div>
 
-      {isPowerOn ? (
-        <>
-          {/* Primary Flight Display (PFD) */}
-          <div className="bg-gray-900 rounded-lg shadow-lg border-2 border-gray-700 p-6">
-            <div className="aspect-video relative bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 rounded overflow-hidden">
-              {/* Artificial Horizon */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative w-full h-full">
-                  {/* Horizon Line */}
-                  <div
-                    className="absolute left-0 right-0 border-t-2 border-white"
-                    style={{
-                      top: `calc(50% + ${attitude.pitch * 2}px)`,
-                      transform: `rotate(${attitude.roll}deg)`,
-                      transformOrigin: 'center'
-                    }}
-                  />
-                  
-                  {/* Sky (blue) */}
-                  <div
-                    className="absolute left-0 right-0 bg-blue-500"
-                    style={{
-                      top: 0,
-                      bottom: `calc(50% + ${attitude.pitch * 2}px)`,
-                      transform: `rotate(${attitude.roll}deg)`,
-                      transformOrigin: 'center'
-                    }}
-                  />
-                  
-                  {/* Ground (brown) */}
-                  <div
-                    className="absolute left-0 right-0 bg-amber-800"
-                    style={{
-                      top: `calc(50% + ${attitude.pitch * 2}px)`,
-                      bottom: 0,
-                      transform: `rotate(${attitude.roll}deg)`,
-                      transformOrigin: 'center'
-                    }}
-                  />
-
-                  {/* Aircraft Symbol */}
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-                    <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-b-[20px] border-b-white" />
-                  </div>
-
-                  {/* Pitch Ladder */}
-                  <div className="absolute inset-0 pointer-events-none">
-                    {[-30, -20, -10, 0, 10, 20, 30].map((pitch) => (
-                      <div
-                        key={pitch}
-                        className="absolute left-1/4 right-1/4 border-t border-white opacity-50"
-                        style={{
-                          top: `calc(50% + ${(attitude.pitch - pitch) * 2}px)`,
-                          transform: `rotate(${attitude.roll}deg)`,
-                          transformOrigin: 'center'
-                        }}
-                      >
-                        <span className="absolute left-2 text-white text-xs">{pitch}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Top Bar - Airspeed */}
-              <div className="absolute top-4 left-4 bg-black/70 rounded px-3 py-2">
-                <div className="text-white text-sm font-mono font-bold">{Math.round(airspeed)}</div>
-                <div className="text-white/70 text-xs">KT</div>
-              </div>
-
-              {/* Right Side - Altitude */}
-              <div className="absolute top-4 right-4 bg-black/70 rounded px-3 py-2">
-                <div className="text-white text-sm font-mono font-bold">{altitude.toLocaleString()}</div>
-                <div className="text-white/70 text-xs">FT</div>
-              </div>
-
-              {/* Bottom Center - Heading */}
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 rounded px-4 py-2">
-                <div className="text-white text-sm font-mono font-bold">
-                  {Math.round(heading).toString().padStart(3, '0')}°
-                </div>
-              </div>
-
-              {/* Vertical Speed Indicator */}
-              <div className="absolute bottom-4 right-4 bg-black/70 rounded px-3 py-2">
-                <div className={`text-sm font-mono font-bold ${verticalSpeed >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {verticalSpeed >= 0 ? '+' : ''}{Math.round(verticalSpeed)}
-                </div>
-                <div className="text-white/70 text-xs">FPM</div>
+      {/* G3X Touch Display */}
+      <div className="bg-gray-900 rounded-lg shadow-lg border-2 border-gray-700 overflow-hidden">
+        <div className="relative" style={{ paddingBottom: '56.25%', height: 0 }}>
+          <iframe
+            src="/g3xtouch/index.html"
+            className="absolute top-0 left-0 w-full h-full border-0"
+            title="G3X Touch Simulator"
+            onLoad={() => setIframeLoaded(true)}
+            sandbox="allow-scripts allow-same-origin"
+            style={{ background: '#000' }}
+          />
+          {!iframeLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+              <div className="text-white text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                <p>Loading G3X Touch...</p>
               </div>
             </div>
-          </div>
-
-          {/* Controls */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Instrument Controls</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Altitude Control */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Altitude: {altitude.toLocaleString()} ft
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="50000"
-                  step="100"
-                  value={altitude}
-                  onChange={(e) => handleControlChange('altitude', parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Heading Control */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Heading: {Math.round(heading)}°
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="360"
-                  step="1"
-                  value={heading}
-                  onChange={(e) => handleControlChange('heading', parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Airspeed Control */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Airspeed: {Math.round(airspeed)} kt
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="300"
-                  step="1"
-                  value={airspeed}
-                  onChange={(e) => handleControlChange('airspeed', parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Vertical Speed Control */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Vertical Speed: {verticalSpeed >= 0 ? '+' : ''}{Math.round(verticalSpeed)} fpm
-                </label>
-                <input
-                  type="range"
-                  min="-6000"
-                  max="6000"
-                  step="100"
-                  value={verticalSpeed}
-                  onChange={(e) => handleControlChange('verticalSpeed', parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Pitch Control */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pitch: {attitude.pitch.toFixed(1)}°
-                </label>
-                <input
-                  type="range"
-                  min="-90"
-                  max="90"
-                  step="1"
-                  value={attitude.pitch}
-                  onChange={(e) => handleControlChange('pitch', parseFloat(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-
-              {/* Roll Control */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Roll: {attitude.roll.toFixed(1)}°
-                </label>
-                <input
-                  type="range"
-                  min="-60"
-                  max="60"
-                  step="1"
-                  value={attitude.roll}
-                  onChange={(e) => handleControlChange('roll', parseFloat(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-            </div>
-
-            {/* Quick Reset Buttons */}
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => {
-                  setAltitude(3500)
-                  setHeading(180)
-                  setAirspeed(120)
-                  setVerticalSpeed(0)
-                  setAttitude({ pitch: 0, roll: 0 })
-                }}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Reset to Level Flight
-              </button>
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="bg-gray-900 rounded-lg shadow-lg border-2 border-gray-700 p-12 text-center">
-          <div className="text-gray-500 text-lg">Display Off</div>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* Additional Info */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">About G3X Touch</h3>
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            The G3X Touch is a touchscreen avionics system designed for experimental and light sport aircraft. 
+            This simulator uses the actual Working Title G3X Touch instrument files from Microsoft Flight Simulator.
+          </p>
+          <p>
+            <strong>Features include:</strong>
+          </p>
+          <ul className="list-disc list-inside space-y-1 ml-4">
+            <li>Primary Flight Display (PFD)</li>
+            <li>Multi-Function Display (MFD)</li>
+            <li>Navigation and flight planning</li>
+            <li>Weather and traffic display</li>
+            <li>Engine monitoring</li>
+            <li>Terrain awareness</li>
+          </ul>
+        </div>
+      </div>
     </div>
   )
 }
