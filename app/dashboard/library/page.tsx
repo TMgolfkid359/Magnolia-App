@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { FolderOpen, FileText, Download } from 'lucide-react'
@@ -20,13 +20,9 @@ export default function LibraryPage() {
     }
   }, [user, authLoading, router])
 
-  useEffect(() => {
-    if (user) {
-      loadFiles()
-    }
-  }, [currentFolderPath, user])
-
-  const loadFiles = async () => {
+  const loadFiles = useCallback(async () => {
+    if (!user) return
+    
     setLoading(true)
     try {
       const folderParam = currentFolderPath ? `?folderPath=${encodeURIComponent(currentFolderPath)}` : ''
@@ -55,7 +51,13 @@ export default function LibraryPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentFolderPath, user])
+
+  useEffect(() => {
+    if (user) {
+      loadFiles()
+    }
+  }, [user, loadFiles])
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
@@ -174,7 +176,6 @@ export default function LibraryPage() {
             )}
           </div>
         )}
-      </div>
     </div>
   )
 }
