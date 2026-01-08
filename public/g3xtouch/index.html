@@ -47,7 +47,7 @@
 </head>
 <body>
     <div class="info-banner">
-        <strong>G3X Touch Simulator</strong> - Note: Full functionality requires Microsoft Flight Simulator SDK
+        <strong>G3X Touch Simulator</strong> - Interactive Mode: Using Mock MSFS SDK with simulated flight data
     </div>
     <div id="g3x-container">
         <div id="Mainframe">
@@ -83,6 +83,9 @@
         }
     </script>
     
+    <!-- Load Mock SimVar System -->
+    <script src="mock-simvars.js"></script>
+    
     <!-- Load G3X Touch libraries and main script -->
     <script src="Libraries/msfssdk.js"></script>
     <script src="Libraries/garminsdk.js"></script>
@@ -93,16 +96,29 @@
         if (typeof g3xtouch !== 'undefined') {
             try {
                 // Attempt to initialize the instrument
-                console.log('G3X Touch loaded');
+                console.log('G3X Touch loaded with Mock SimVar system');
+                
+                // Initialize mock SimVars with default values
+                if (window.MockSimVars) {
+                    console.log('Mock SimVars initialized:', Object.keys(window.MockSimVars));
+                }
             } catch (error) {
                 console.error('Error initializing G3X Touch:', error);
                 document.getElementById('g3x-container').innerHTML = 
-                    '<div class="error-message">G3X Touch requires Microsoft Flight Simulator SDK to function fully.<br>Visual assets loaded successfully.</div>';
+                    '<div class="error-message">Error loading G3X Touch.<br>Check console for details.</div>';
             }
         } else {
+            console.warn('G3X Touch script not available');
             document.getElementById('g3x-container').innerHTML = 
                 '<div class="error-message">G3X Touch script not available.<br>Please ensure all files are present.</div>';
         }
+        
+        // Notify parent that iframe is ready
+        window.addEventListener('load', () => {
+            if (window.parent) {
+                window.parent.postMessage({ type: 'G3X_READY' }, '*');
+            }
+        });
     </script>
 </body>
 </html>

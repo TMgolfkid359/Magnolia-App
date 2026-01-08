@@ -1875,8 +1875,95 @@ function InteractiveToolsTab() {
 
 // G3X Touch Simulator Component
 function G3XTouchSimulator({ onBack }: { onBack: () => void }) {
-  const [useMSFSVersion, setUseMSFSVersion] = useState(true)
   const [iframeLoaded, setIframeLoaded] = useState(false)
+  const [iframeRef, setIframeRef] = useState<HTMLIFrameElement | null>(null)
+  
+  // Flight parameters state
+  const [altitude, setAltitude] = useState(3500)
+  const [heading, setHeading] = useState(180)
+  const [airspeed, setAirspeed] = useState(120)
+  const [verticalSpeed, setVerticalSpeed] = useState(0)
+  const [pitch, setPitch] = useState(0)
+  const [roll, setRoll] = useState(0)
+  const [rpm, setRpm] = useState(2400)
+  const [oilTemp, setOilTemp] = useState(90)
+  const [oilPressure, setOilPressure] = useState(60)
+  const [fuelQuantity, setFuelQuantity] = useState(20)
+
+  // Send update to iframe
+  const updateSimVar = (name: string, value: number) => {
+    if (iframeRef?.contentWindow) {
+      iframeRef.contentWindow.postMessage({
+        type: 'UPDATE_SIMVAR',
+        name,
+        value
+      }, '*')
+    }
+  }
+
+  // Handle parameter changes
+  const handleAltitudeChange = (value: number) => {
+    setAltitude(value)
+    updateSimVar('INDICATED ALTITUDE', value)
+    updateSimVar('PLANE ALTITUDE', value)
+  }
+
+  const handleHeadingChange = (value: number) => {
+    setHeading(value)
+    updateSimVar('PLANE HEADING DEGREES TRUE', value)
+    updateSimVar('PLANE HEADING DEGREES MAGNETIC', value)
+  }
+
+  const handleAirspeedChange = (value: number) => {
+    setAirspeed(value)
+    updateSimVar('AIRSPEED INDICATED', value)
+    updateSimVar('AIRSPEED TRUE', value)
+    updateSimVar('GPS GROUND SPEED', value)
+  }
+
+  const handleVerticalSpeedChange = (value: number) => {
+    setVerticalSpeed(value)
+    updateSimVar('VERTICAL SPEED', value)
+  }
+
+  const handlePitchChange = (value: number) => {
+    setPitch(value)
+    updateSimVar('PLANE PITCH DEGREES', value)
+  }
+
+  const handleRollChange = (value: number) => {
+    setRoll(value)
+    updateSimVar('PLANE BANK DEGREES', value)
+  }
+
+  const handleRpmChange = (value: number) => {
+    setRpm(value)
+    updateSimVar('GENERAL ENG RPM:1', value)
+  }
+
+  const handleOilTempChange = (value: number) => {
+    setOilTemp(value)
+    updateSimVar('ENG OIL TEMPERATURE:1', value)
+  }
+
+  const handleOilPressureChange = (value: number) => {
+    setOilPressure(value)
+    updateSimVar('ENG OIL PRESSURE:1', value)
+  }
+
+  const handleFuelChange = (value: number) => {
+    setFuelQuantity(value)
+    updateSimVar('FUEL TANK QUANTITY:1', value)
+  }
+
+  const resetToLevelFlight = () => {
+    handleAltitudeChange(3500)
+    handleHeadingChange(180)
+    handleAirspeedChange(120)
+    handleVerticalSpeedChange(0)
+    handlePitchChange(0)
+    handleRollChange(0)
+  }
 
   return (
     <div className="space-y-6">
@@ -1884,7 +1971,7 @@ function G3XTouchSimulator({ onBack }: { onBack: () => void }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">G3X Touch Instruments</h2>
-          <p className="text-gray-600 text-sm mt-1">Working Title G3X Touch Simulator from Microsoft Flight Simulator</p>
+          <p className="text-gray-600 text-sm mt-1">Interactive Garmin G3X Touch Simulator with Mock MSFS SDK</p>
         </div>
         <button
           onClick={onBack}
@@ -1895,18 +1982,17 @@ function G3XTouchSimulator({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
         <div className="flex items-start">
           <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
           </div>
           <div className="ml-3 flex-1">
-            <p className="text-sm text-blue-700">
-              <strong>Note:</strong> The G3X Touch instrument requires Microsoft Flight Simulator SDK to function fully. 
-              The visual assets and interface are loaded from the Working Title G3X Touch package. 
-              Some features may not work without MSFS running.
+            <p className="text-sm text-green-700">
+              <strong>Interactive Mode:</strong> This simulator uses a mock MSFS SDK that provides simulated flight data. 
+              Use the controls below to interact with the G3X Touch instrument in real-time.
             </p>
           </div>
         </div>
@@ -1916,6 +2002,7 @@ function G3XTouchSimulator({ onBack }: { onBack: () => void }) {
       <div className="bg-gray-900 rounded-lg shadow-lg border-2 border-gray-700 overflow-hidden">
         <div className="relative" style={{ paddingBottom: '56.25%', height: 0 }}>
           <iframe
+            ref={setIframeRef}
             src="/g3xtouch/index.html"
             className="absolute top-0 left-0 w-full h-full border-0"
             title="G3X Touch Simulator"
@@ -1934,13 +2021,190 @@ function G3XTouchSimulator({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
+      {/* Interactive Controls */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Flight Controls</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Altitude */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Altitude: {altitude.toLocaleString()} ft
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="50000"
+              step="100"
+              value={altitude}
+              onChange={(e) => handleAltitudeChange(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {/* Heading */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Heading: {Math.round(heading)}°
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="360"
+              step="1"
+              value={heading}
+              onChange={(e) => handleHeadingChange(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {/* Airspeed */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Airspeed: {Math.round(airspeed)} kt
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="300"
+              step="1"
+              value={airspeed}
+              onChange={(e) => handleAirspeedChange(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {/* Vertical Speed */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Vertical Speed: {verticalSpeed >= 0 ? '+' : ''}{Math.round(verticalSpeed)} fpm
+            </label>
+            <input
+              type="range"
+              min="-6000"
+              max="6000"
+              step="100"
+              value={verticalSpeed}
+              onChange={(e) => handleVerticalSpeedChange(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {/* Pitch */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Pitch: {pitch.toFixed(1)}°
+            </label>
+            <input
+              type="range"
+              min="-90"
+              max="90"
+              step="1"
+              value={pitch}
+              onChange={(e) => handlePitchChange(parseFloat(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {/* Roll */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Roll: {roll.toFixed(1)}°
+            </label>
+            <input
+              type="range"
+              min="-60"
+              max="60"
+              step="1"
+              value={roll}
+              onChange={(e) => handleRollChange(parseFloat(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {/* Engine RPM */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Engine RPM: {rpm}
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="3000"
+              step="50"
+              value={rpm}
+              onChange={(e) => handleRpmChange(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {/* Oil Temperature */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Oil Temp: {oilTemp}°C
+            </label>
+            <input
+              type="range"
+              min="50"
+              max="150"
+              step="1"
+              value={oilTemp}
+              onChange={(e) => handleOilTempChange(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {/* Oil Pressure */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Oil Pressure: {oilPressure} psi
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={oilPressure}
+              onChange={(e) => handleOilPressureChange(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {/* Fuel Quantity */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Fuel: {fuelQuantity.toFixed(1)} gal
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="50"
+              step="0.5"
+              value={fuelQuantity}
+              onChange={(e) => handleFuelChange(parseFloat(e.target.value))}
+              className="w-full"
+            />
+          </div>
+        </div>
+
+        {/* Reset Button */}
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={resetToLevelFlight}
+            className="px-4 py-2 bg-magnolia-600 text-white rounded-lg hover:bg-magnolia-700 transition-colors"
+          >
+            Reset to Level Flight
+          </button>
+        </div>
+      </div>
+
       {/* Additional Info */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">About G3X Touch</h3>
         <div className="space-y-2 text-sm text-gray-600">
           <p>
             The G3X Touch is a touchscreen avionics system designed for experimental and light sport aircraft. 
-            This simulator uses the actual Working Title G3X Touch instrument files from Microsoft Flight Simulator.
+            This simulator uses the actual Working Title G3X Touch instrument files from Microsoft Flight Simulator 
+            with a mock MSFS SDK that provides simulated flight data.
           </p>
           <p>
             <strong>Features include:</strong>
