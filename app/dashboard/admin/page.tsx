@@ -3,13 +3,13 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X, CheckCircle, MapPin, Wrench } from 'lucide-react'
+import { Users, BookOpen, Video, FileText, Plus, Edit, Trash2, Save, X, CheckCircle, MapPin, Wrench, FolderOpen } from 'lucide-react'
 import { userService, PortalUser } from '@/services/userService'
 import { courseService, Course } from '@/services/courseService'
 import { videoService, VideoLesson } from '@/services/videoService'
 import { examService, Exam, ExamQuestion } from '@/services/examService'
 
-type Tab = 'users' | 'courses' | 'videos' | 'exams' | 'tools'
+type Tab = 'users' | 'courses' | 'videos' | 'exams' | 'tools' | 'library'
 
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth()
@@ -200,6 +200,7 @@ export default function AdminPage() {
             { id: 'courses' as Tab, label: 'Courses', icon: BookOpen, count: courses.length },
             { id: 'videos' as Tab, label: 'Videos', icon: Video, count: videos.length },
             { id: 'exams' as Tab, label: 'Exams', icon: FileText, count: exams.length },
+            { id: 'library' as Tab, label: 'Library', icon: FolderOpen, count: 0 },
             { id: 'tools' as Tab, label: 'Interactive Tools', icon: Wrench, count: 0 },
           ].map((tab) => {
             const Icon = tab.icon
@@ -279,6 +280,9 @@ export default function AdminPage() {
               setEditingExam(null)
             }}
           />
+        )}
+        {activeTab === 'library' && (
+          <LibraryTab userId={user?.id || ''} />
         )}
         {activeTab === 'tools' && (
           <InteractiveToolsTab />
@@ -1834,6 +1838,345 @@ function ExamsTab({
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Library Tab Component
+function LibraryTab({ userId }: { userId: string }) {
+  const [currentFolderPath, setCurrentFolderPath] = useState<string | null>(null)
+  const [files, setFiles] = useState<any[]>([])
+  const [folders, setFolders] = useState<any[]>([])
+  const [breadcrumbs, setBreadcrumbs] = useState<Array<{ name: string; path: string | null }>>([])
+  const [loading, setLoading] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [showFolderModal, setShowFolderModal] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+
+  useEffect(() => {
+    loadFiles()
+  }, [currentFolderPath])
+
+  const loadFiles = async () => {
+    setLoading(true)
+    try {
+      const folderParam = currentFolderPath ? `?folderPath=${encodeURIComponent(currentFolderPath)}` : ''
+      const response = await fetch(`/api/library/files${folderParam}`)
+      const data = await response.json()
+      if (data.success) {
+        setFiles(data.files || [])
+        setFolders(data.folders || [])
+        setBreadcrumbs(data.breadcrumbs || [])
+      }
+    } catch (error) {
+      console.error('Error loading files:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!uploadFile || !userId) return
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', uploadFile)
+      formData.append('folderPath', currentFolderPath || '')
+      formData.append('uploadedBy', userId)
+
+      const response = await fetch('/api/library/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setShowUploadModal(false)
+        setUploadFile(null)
+        loadFiles()
+      } else {
+        alert(data.error || 'Failed to upload file')
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      alert('Failed to upload file')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim() || !userId) return
+
+    try {
+      const response = await fetch('/api/library/folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newFolderName.trim(),
+          parentPath: currentFolderPath,
+          createdBy: userId,
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setShowFolderModal(false)
+        setNewFolderName('')
+        loadFiles()
+      } else {
+        alert(data.error || 'Failed to create folder')
+      }
+    } catch (error) {
+      console.error('Error creating folder:', error)
+      alert('Failed to create folder')
+    }
+  }
+
+  const handleDeleteFile = async (fileId: string) => {
+    if (!confirm('Are you sure you want to delete this file?')) return
+
+    try {
+      const response = await fetch(`/api/library/file/${fileId}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        loadFiles()
+      } else {
+        alert(data.error || 'Failed to delete file')
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error)
+      alert('Failed to delete file')
+    }
+  }
+
+  const handleDeleteFolder = async (folderPath: string) => {
+    if (!confirm('Are you sure you want to delete this folder and all its contents?')) return
+
+    try {
+      const response = await fetch(`/api/library/folder?path=${encodeURIComponent(folderPath)}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        loadFiles()
+      } else {
+        alert(data.error || 'Failed to delete folder')
+      }
+    } catch (error) {
+      console.error('Error deleting folder:', error)
+      alert('Failed to delete folder')
+    }
+  }
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">File Library</h2>
+          <p className="text-gray-600 mt-1">Manage documents and folders</p>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowFolderModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            <span>New Folder</span>
+          </button>
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-magnolia-600 text-white rounded-lg hover:bg-magnolia-700 transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Upload File</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Breadcrumbs */}
+      {breadcrumbs.length > 0 && (
+        <div className="flex items-center space-x-2 text-sm">
+          {breadcrumbs.map((crumb, index) => (
+            <React.Fragment key={index}>
+              <button
+                onClick={() => setCurrentFolderPath(crumb.path)}
+                className={`${
+                  index === breadcrumbs.length - 1
+                    ? 'text-gray-900 font-medium'
+                    : 'text-gray-600 hover:text-magnolia-600'
+                }`}
+              >
+                {crumb.name}
+              </button>
+              {index < breadcrumbs.length - 1 && <span className="text-gray-400">/</span>}
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+
+      {/* Content */}
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          {folders.length === 0 && files.length === 0 ? (
+            <div className="text-center py-12">
+              <FolderOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">This folder is empty</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {/* Folders */}
+              {folders.map((folder) => (
+                <div
+                  key={folder.id}
+                  className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <button
+                    onClick={() => setCurrentFolderPath(folder.path)}
+                    className="flex items-center space-x-3 flex-1 text-left"
+                  >
+                    <FolderOpen className="h-6 w-6 text-magnolia-600" />
+                    <div>
+                      <p className="font-medium text-gray-900">{folder.name}</p>
+                      <p className="text-sm text-gray-500">Folder</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteFolder(folder.path)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete folder"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
+              ))}
+
+              {/* Files */}
+              {files.map((file) => (
+                <div
+                  key={file.id}
+                  className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center space-x-3 flex-1">
+                    <FileText className="h-6 w-6 text-gray-400" />
+                    <div>
+                      <a
+                        href={`/api/library/file?id=${file.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-gray-900 hover:text-magnolia-600"
+                      >
+                        {file.name}
+                      </a>
+                      <p className="text-sm text-gray-500">
+                        {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteFile(file.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete file"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Upload File</h3>
+            <input
+              type="file"
+              onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+              className="w-full mb-4 p-2 border border-gray-300 rounded-lg"
+            />
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowUploadModal(false)
+                  setUploadFile(null)
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={!uploadFile || uploading}
+                className="px-4 py-2 bg-magnolia-600 text-white rounded-lg hover:bg-magnolia-700 disabled:opacity-50"
+              >
+                {uploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Folder Modal */}
+      {showFolderModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Create Folder</h3>
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Folder name"
+              className="w-full mb-4 p-2 border border-gray-300 rounded-lg"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleCreateFolder()
+                }
+              }}
+            />
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowFolderModal(false)
+                  setNewFolderName('')
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateFolder}
+                disabled={!newFolderName.trim()}
+                className="px-4 py-2 bg-magnolia-600 text-white rounded-lg hover:bg-magnolia-700 disabled:opacity-50"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
