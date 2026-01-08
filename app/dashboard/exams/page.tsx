@@ -239,6 +239,43 @@ function ExamsPageContent() {
                     Completed: {new Date(lastAttempt.completedAt).toLocaleString()}
                   </p>
                 )}
+                
+                {/* Show all previous results */}
+                {completedAttempts.length > 1 && (
+                  <div className="mt-4 pt-4 border-t border-gray-300">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Previous Results</h4>
+                    <div className="space-y-2">
+                      {completedAttempts.slice(0, -1).reverse().map((prevAttempt, index) => (
+                        <div key={prevAttempt.id} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
+                          <div className="flex items-center space-x-2">
+                            {prevAttempt.passed ? (
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-red-500" />
+                            )}
+                            <span className="text-sm text-gray-700">
+                              Attempt {completedAttempts.length - index - 1}
+                            </span>
+                            {prevAttempt.completedAt && (
+                              <span className="text-xs text-gray-500">
+                                ({new Date(prevAttempt.completedAt).toLocaleDateString()})
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className={`text-sm font-semibold ${prevAttempt.passed ? 'text-green-600' : 'text-red-600'}`}>
+                              {prevAttempt.passed ? 'Passed' : 'Failed'}
+                            </span>
+                            <span className="text-sm font-bold text-magnolia-600">
+                              {prevAttempt.score}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 {remainingAttempts !== null && (
                   <div className="mt-4 pt-4 border-t border-gray-300">
                     <p className="text-sm font-medium text-gray-700">
@@ -315,7 +352,7 @@ function ExamsPageContent() {
           {lastAttempt && (
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-6">
               <h3 className="text-sm font-semibold text-gray-900 mb-2">Last Result</h3>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 mb-2">
                 {lastAttempt.passed ? (
                   <CheckCircle className="h-5 w-5 text-green-500" />
                 ) : (
@@ -325,6 +362,38 @@ function ExamsPageContent() {
                   {lastAttempt.passed ? 'Passed' : 'Failed'} - Score: {lastAttempt.score}%
                 </span>
               </div>
+              
+              {/* Show all previous results */}
+              {completedAttempts.length > 1 && (
+                <div className="mt-3 pt-3 border-t border-gray-300">
+                  <h4 className="text-xs font-semibold text-gray-900 mb-2">Previous Results</h4>
+                  <div className="space-y-1.5">
+                    {completedAttempts.slice(0, -1).reverse().map((prevAttempt, index) => (
+                      <div key={prevAttempt.id} className="flex items-center justify-between p-1.5 bg-white rounded border border-gray-200 text-xs">
+                        <div className="flex items-center space-x-1.5">
+                          {prevAttempt.passed ? (
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <XCircle className="h-3 w-3 text-red-500" />
+                          )}
+                          <span className="text-gray-700">
+                            Attempt {completedAttempts.length - index - 1}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-1.5">
+                          <span className={`font-semibold ${prevAttempt.passed ? 'text-green-600' : 'text-red-600'}`}>
+                            {prevAttempt.passed ? 'Passed' : 'Failed'}
+                          </span>
+                          <span className="font-bold text-magnolia-600">
+                            {prevAttempt.score}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               {remainingAttempts !== null && (
                 <p className="text-xs text-gray-600 mt-2">
                   Remaining attempts: <span className="font-bold text-magnolia-600">{remainingAttempts}</span>
@@ -489,10 +558,36 @@ function ExamsPageContent() {
                           Completed: {new Date(lastAttempt.completedAt).toLocaleString()}
                         </p>
                       )}
+                      
+                      {/* Show all previous results */}
                       {completedAttempts.length > 1 && (
-                        <p className="text-xs text-gray-400 mt-2">
-                          Total attempts: {completedAttempts.length}
-                        </p>
+                        <div className="mt-3 pt-3 border-t border-gray-300">
+                          <h4 className="text-xs font-semibold text-gray-900 mb-2">Previous Results</h4>
+                          <div className="space-y-1.5">
+                            {completedAttempts.slice(0, -1).reverse().map((prevAttempt, index) => (
+                              <div key={prevAttempt.id} className="flex items-center justify-between p-1.5 bg-white rounded border border-gray-200 text-xs">
+                                <div className="flex items-center space-x-1.5">
+                                  {prevAttempt.passed ? (
+                                    <CheckCircle className="h-3 w-3 text-green-500" />
+                                  ) : (
+                                    <XCircle className="h-3 w-3 text-red-500" />
+                                  )}
+                                  <span className="text-gray-700">
+                                    Attempt {completedAttempts.length - index - 1}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-1.5">
+                                  <span className={`font-semibold ${prevAttempt.passed ? 'text-green-600' : 'text-red-600'}`}>
+                                    {prevAttempt.passed ? 'Passed' : 'Failed'}
+                                  </span>
+                                  <span className="font-bold text-magnolia-600">
+                                    {prevAttempt.score}%
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
