@@ -85,8 +85,8 @@ export default function LibraryPage() {
           <p className="text-gray-600 mt-1">Browse and download documents</p>
         </div>
 
-        {/* Breadcrumbs */}
-        {breadcrumbs.length > 0 && (
+        {/* Breadcrumbs - Only show when in a subfolder */}
+        {breadcrumbs.length > 1 && (
           <div className="flex items-center space-x-2 text-sm">
             {breadcrumbs.map((crumb, index) => (
               <React.Fragment key={index}>
