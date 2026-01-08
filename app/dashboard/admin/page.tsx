@@ -302,8 +302,6 @@ function UsersTab({
   onRoleChange: (id: string, role: 'student' | 'instructor' | 'admin') => void
   onUsersUpdate?: () => void
 }) {
-  const [editingFspId, setEditingFspId] = useState<{ userId: string; type: 'student' | 'instructor' } | null>(null)
-  const [fspIdValue, setFspIdValue] = useState('')
   const [isCreatingUser, setIsCreatingUser] = useState(false)
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
   
@@ -457,33 +455,6 @@ function UsersTab({
     }
   }
 
-  const handleEditFspId = (user: PortalUser, type: 'student' | 'instructor') => {
-    setEditingFspId({ userId: user.id, type })
-    setFspIdValue(type === 'student' ? (user.fspStudentId || '') : (user.fspInstructorId || ''))
-  }
-
-  const handleSaveFspId = () => {
-    if (!editingFspId) return
-    
-    const { userId, type } = editingFspId
-    if (type === 'student') {
-      userService.updateUserFspId(userId, fspIdValue || undefined)
-    } else {
-      userService.updateUserFspId(userId, undefined, fspIdValue || undefined)
-    }
-    
-    setEditingFspId(null)
-    setFspIdValue('')
-    // Trigger parent component to reload users
-    if (onUsersUpdate) {
-      onUsersUpdate()
-    }
-  }
-
-  const handleCancelEdit = () => {
-    setEditingFspId(null)
-    setFspIdValue('')
-  }
 
   return (
     <div className="space-y-6">
@@ -773,92 +744,33 @@ function UsersTab({
               </div>
             </div>
             
-            {/* FSP ID Management */}
-            <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-              <div className="text-xs font-medium text-gray-700 mb-2">Flight Schedule Pro IDs:</div>
-              
-              {user.role === 'student' && (
+            {/* Instructor Assignment (for students) */}
+            {user.role === 'student' && (
+              <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                <div className="text-xs font-medium text-gray-700 mb-2">Assigned Instructor:</div>
                 <div className="flex items-center space-x-2">
-                  <label className="text-xs text-gray-600 w-20">Student ID:</label>
-                  {editingFspId?.userId === user.id && editingFspId.type === 'student' ? (
-                    <div className="flex-1 flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={fspIdValue}
-                        onChange={(e) => setFspIdValue(e.target.value)}
-                        className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
-                        placeholder="Enter FSP Student ID"
-                      />
-                      <button
-                        onClick={handleSaveFspId}
-                        className="px-2 py-1 text-xs bg-magnolia-600 text-white rounded-md hover:bg-magnolia-700"
-                      >
-                        <Save className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={handleCancelEdit}
-                        className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex items-center space-x-2">
-                      <span className="text-xs text-gray-600 flex-1">
-                        {user.fspStudentId || 'Not set'}
-                      </span>
-                      <button
-                        onClick={() => handleEditFspId(user, 'student')}
-                        className="px-2 py-1 text-xs text-magnolia-600 hover:bg-magnolia-50 rounded-md"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </button>
-                    </div>
-                  )}
+                  <select
+                    value={user.assignedInstructorIds?.[0] || ''}
+                    onChange={(e) => {
+                      const instructorId = e.target.value
+                      const updatedInstructorIds = instructorId ? [instructorId] : []
+                      userService.updateUser(user.id, { assignedInstructorIds: updatedInstructorIds })
+                      if (onUsersUpdate) onUsersUpdate()
+                    }}
+                    className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
+                  >
+                    <option value="">No instructor assigned</option>
+                    {users
+                      .filter(u => u.role === 'instructor' && u.enrolled)
+                      .map(instructor => (
+                        <option key={instructor.id} value={instructor.id}>
+                          {instructor.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
-              )}
-              
-              {(user.role === 'instructor' || user.role === 'admin') && (
-                <div className="flex items-center space-x-2">
-                  <label className="text-xs text-gray-600 w-20">Instructor ID:</label>
-                  {editingFspId?.userId === user.id && editingFspId.type === 'instructor' ? (
-                    <div className="flex-1 flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={fspIdValue}
-                        onChange={(e) => setFspIdValue(e.target.value)}
-                        className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-magnolia-600 text-gray-900"
-                        placeholder="Enter FSP Instructor ID"
-                      />
-                      <button
-                        onClick={handleSaveFspId}
-                        className="px-2 py-1 text-xs bg-magnolia-600 text-white rounded-md hover:bg-magnolia-700"
-                      >
-                        <Save className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={handleCancelEdit}
-                        className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex items-center space-x-2">
-                      <span className="text-xs text-gray-600 flex-1">
-                        {user.fspInstructorId || 'Not set'}
-                      </span>
-                      <button
-                        onClick={() => handleEditFspId(user, 'instructor')}
-                        className="px-2 py-1 text-xs text-magnolia-600 hover:bg-magnolia-50 rounded-md"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         ))}
         {users.filter(u => {

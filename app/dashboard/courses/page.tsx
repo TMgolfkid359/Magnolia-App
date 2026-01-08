@@ -742,15 +742,33 @@ export default function CoursesPage() {
                             {courseExams.map(exam => {
                               const attempts = userAttempts.filter(a => a.examId === exam.id && a.completedAt)
                               const passed = attempts.some(a => a.passed === true)
+                              const lastAttempt = attempts[attempts.length - 1]
+                              const remainingAttempts = exam.attemptsAllowed 
+                                ? Math.max(0, exam.attemptsAllowed - attempts.length)
+                                : null
                               return (
-                                <div key={exam.id} className="flex items-center justify-between p-3 bg-white rounded border">
-                                  <span className="text-gray-700">{exam.title}</span>
+                                <button
+                                  key={exam.id}
+                                  onClick={() => router.push(`/dashboard/exams?examId=${exam.id}`)}
+                                  className="w-full flex items-center justify-between p-3 bg-white rounded border hover:bg-gray-50 hover:border-magnolia-500 transition-colors text-left"
+                                >
+                                  <div className="flex-1">
+                                    <span className="text-gray-700 font-medium">{exam.title}</span>
+                                    {lastAttempt && (
+                                      <div className="text-xs text-gray-500 mt-1">
+                                        Last score: {lastAttempt.score}% {lastAttempt.passed ? '(Passed)' : '(Failed)'}
+                                        {remainingAttempts !== null && (
+                                          <span className="ml-2">• {remainingAttempts} attempts remaining</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
                                   {passed ? (
-                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
                                   ) : (
-                                    <Circle className="h-5 w-5 text-gray-300" />
+                                    <Circle className="h-5 w-5 text-gray-300 flex-shrink-0" />
                                   )}
-                                </div>
+                                </button>
                               )
                             })}
                           </div>

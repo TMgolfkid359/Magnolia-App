@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { FileText, Clock, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
 import { examService, Exam, ExamAttempt } from '@/services/examService'
 import { progressService } from '@/services/progressService'
@@ -11,6 +11,7 @@ import Link from 'next/link'
 export default function ExamsPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [exams, setExams] = useState<Exam[]>([])
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null)
   const [attempt, setAttempt] = useState<ExamAttempt | null>(null)
@@ -62,7 +63,22 @@ export default function ExamsPage() {
     if (authLoading || !user) return
     const allExams = examService.getAllExams()
     setExams(allExams)
-  }, [user, authLoading])
+    
+    // Check if examId is in URL params
+    const examId = searchParams.get('examId')
+    if (examId) {
+      const exam = allExams.find(e => e.id === examId)
+      if (exam) {
+        setSelectedExam(exam)
+        // Load last attempt if exists
+        const userAttempts = examService.getUserAttempts(user.id, exam.id)
+        const completedAttempts = userAttempts.filter(a => a.completedAt)
+        if (completedAttempts.length > 0) {
+          setAttempt(completedAttempts[completedAttempts.length - 1])
+        }
+      }
+    }
+  }, [user, authLoading, searchParams])
 
   useEffect(() => {
     if (selectedExam && selectedExam.timeLimit && !attempt?.completedAt) {
@@ -159,8 +175,116 @@ export default function ExamsPage() {
     )
   }
 
-  // Show exam taking interface (only for instructors and admins)
-  if (selectedExam && user?.role !== 'student') {
+  // Show exam taking interface
+  if (selectedExam) {
+    const userAttempts = examService.getUserAttempts(user?.id || '', selectedExam.id)
+    const completedAttempts = userAttempts.filter(a => a.completedAt)
+    const lastAttempt = completedAttempts[completedAttempts.length - 1]
+    const remainingAttempts = selectedExam.attemptsAllowed 
+      ? Math.max(0, selectedExam.attemptsAllowed - completedAttempts.length)
+      : null
+    
+    // For students, show exam info and results only
+    if (user?.role === 'student') {
+      return (
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{selectedExam.title}</h1>
+                <p className="text-gray-600 mt-1">{selectedExam.description}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedExam(null)
+                  setAttempt(null)
+                  router.push('/dashboard/exams')
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                <ArrowLeft className="h-4 w-4 inline mr-2" />
+                Back
+              </button>
+            </div>
+            
+            {/* Show last result and remaining attempts */}
+            {lastAttempt ? (
+              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Last Result</h3>
+                <div className="flex items-center space-x-3 mb-2">
+                  {lastAttempt.passed ? (
+                    <CheckCircle className="h-6 w-6 text-green-500" />
+                  ) : (
+                    <XCircle className="h-6 w-6 text-red-500" />
+                  )}
+                  <span className={`text-xl font-semibold ${lastAttempt.passed ? 'text-green-600' : 'text-red-600'}`}>
+                    {lastAttempt.passed ? 'Passed' : 'Failed'}
+                  </span>
+                  <span className="text-xl font-bold text-magnolia-600">
+                    Score: {lastAttempt.score}%
+                  </span>
+                </div>
+                {lastAttempt.completedAt && (
+                  <p className="text-sm text-gray-500 mb-4">
+                    Completed: {new Date(lastAttempt.completedAt).toLocaleString()}
+                  </p>
+                )}
+                {remainingAttempts !== null && (
+                  <div className="mt-4 pt-4 border-t border-gray-300">
+                    <p className="text-sm font-medium text-gray-700">
+                      Remaining attempts: <span className="text-magnolia-600 font-bold">{remainingAttempts}</span>
+                    </p>
+                    {remainingAttempts === 0 && (
+                      <p className="text-xs text-red-600 mt-1">You have reached the maximum number of attempts.</p>
+                    )}
+                  </div>
+                )}
+                {remainingAttempts === null && (
+                  <p className="text-sm text-gray-500 mt-2">Unlimited attempts allowed</p>
+                )}
+              </div>
+            ) : (
+              <div className="bg-blue-50 rounded-lg p-6 border border-blue-200 mb-6">
+                <p className="text-blue-800">You haven't taken this exam yet.</p>
+                {remainingAttempts !== null && (
+                  <p className="text-sm text-blue-600 mt-2">
+                    Attempts available: {remainingAttempts}
+                  </p>
+                )}
+              </div>
+            )}
+            
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <h4 className="font-semibold text-gray-900 mb-2">Exam Details</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                <div>
+                  <span className="font-medium">Questions:</span> {selectedExam.questions.length}
+                </div>
+                <div>
+                  <span className="font-medium">Passing Score:</span> {selectedExam.passingScore}%
+                </div>
+                {selectedExam.timeLimit && (
+                  <div>
+                    <span className="font-medium">Time Limit:</span> {selectedExam.timeLimit} minutes
+                  </div>
+                )}
+                {selectedExam.attemptsAllowed ? (
+                  <div>
+                    <span className="font-medium">Attempts Allowed:</span> {selectedExam.attemptsAllowed}
+                  </div>
+                ) : (
+                  <div>
+                    <span className="font-medium">Attempts:</span> Unlimited
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    
+    // For instructors/admins, show exam taking interface
     return (
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -176,6 +300,28 @@ export default function ExamsPage() {
               </div>
             )}
           </div>
+          
+          {/* Show last result and remaining attempts */}
+          {lastAttempt && (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-6">
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">Last Result</h3>
+              <div className="flex items-center space-x-3">
+                {lastAttempt.passed ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-red-500" />
+                )}
+                <span className={`font-semibold ${lastAttempt.passed ? 'text-green-600' : 'text-red-600'}`}>
+                  {lastAttempt.passed ? 'Passed' : 'Failed'} - Score: {lastAttempt.score}%
+                </span>
+              </div>
+              {remainingAttempts !== null && (
+                <p className="text-xs text-gray-600 mt-2">
+                  Remaining attempts: <span className="font-bold text-magnolia-600">{remainingAttempts}</span>
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-6">
             {selectedExam.questions.map((question, index) => (
