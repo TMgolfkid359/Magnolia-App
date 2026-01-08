@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Video, Play, Calendar, Clock, Search } from 'lucide-react'
+import { normalizeYouTubeUrl } from '@/utils/youtube'
 import { videoService, VideoLesson } from '@/services/videoService'
 
 
@@ -113,10 +114,13 @@ export default function VideosPage() {
           <h2 className="text-2xl font-semibold text-gray-900 mb-4">{selectedVideo.title}</h2>
           <div className="aspect-video mb-4 bg-gray-900 rounded-lg overflow-hidden">
             <iframe
-              src={selectedVideo.videoUrl}
+              src={normalizeYouTubeUrl(selectedVideo.videoUrl)}
               className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
+              frameBorder="0"
+              referrerPolicy="strict-origin-when-cross-origin"
+              title={selectedVideo.title}
             ></iframe>
           </div>
           <div className="space-y-2 text-sm text-gray-600">

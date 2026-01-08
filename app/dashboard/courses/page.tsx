@@ -7,6 +7,7 @@ import { BookOpen, CheckCircle, Circle, FileText, Clock, Play, ArrowRight, X, Ch
 import { courseService, Course } from '@/services/courseService'
 import { progressService } from '@/services/progressService'
 import { examService } from '@/services/examService'
+import { normalizeYouTubeUrl } from '@/utils/youtube'
 import JSZip from 'jszip'
 
 interface PPTXSlide {
@@ -512,10 +513,13 @@ export default function CoursesPage() {
                       <div className="w-full bg-gray-900 rounded-lg overflow-hidden" style={{ height: 'calc(100vh - 250px)' }}>
                         {material.url ? (
                           <iframe
-                            src={material.url}
+                            src={normalizeYouTubeUrl(material.url)}
                             className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             allowFullScreen
+                            frameBorder="0"
+                            referrerPolicy="strict-origin-when-cross-origin"
+                            title={material.title}
                           ></iframe>
                         ) : (
                           <div className="flex items-center justify-center h-full text-white">
