@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { FolderOpen, FileText, Download, ArrowLeft } from 'lucide-react'
-import DashboardLayout from '@/components/DashboardLayout'
+import { FolderOpen, FileText, Download } from 'lucide-react'
 
 export default function LibraryPage() {
   const { user, loading: authLoading } = useAuth()
@@ -68,17 +67,14 @@ export default function LibraryPage() {
 
   if (authLoading) {
     return (
-      <DashboardLayout>
-        <div className="text-center py-12">
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </DashboardLayout>
+      <div className="text-center py-12">
+        <p className="text-gray-600">Loading...</p>
+      </div>
     )
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Document Library</h1>
@@ -179,7 +175,7 @@ export default function LibraryPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </div>
   )
 }
 
