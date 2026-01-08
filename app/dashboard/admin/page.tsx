@@ -1853,6 +1853,7 @@ function LibraryTab({ userId }: { userId: string }) {
   const [showFolderModal, setShowFolderModal] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [creatingFolder, setCreatingFolder] = useState(false)
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [fileVisibility, setFileVisibility] = useState<'all' | 'instructor'>('all')
 
@@ -1912,8 +1913,19 @@ function LibraryTab({ userId }: { userId: string }) {
   }
 
   const handleCreateFolder = async () => {
-    if (!newFolderName.trim() || !userId) return
+    if (!newFolderName.trim()) {
+      alert('Please enter a folder name')
+      return
+    }
+    
+    if (!userId) {
+      alert('User ID is missing. Please refresh the page and try again.')
+      return
+    }
 
+    if (creatingFolder) return // Prevent double-clicks
+
+    setCreatingFolder(true)
     try {
       const response = await fetch('/api/library/folder', {
         method: 'POST',
@@ -1926,16 +1938,26 @@ function LibraryTab({ userId }: { userId: string }) {
       })
 
       const data = await response.json()
+      
+      if (!response.ok) {
+        console.error('Folder creation failed:', data)
+        alert(data.error || `Failed to create folder (${response.status})`)
+        return
+      }
+      
       if (data.success) {
         setShowFolderModal(false)
         setNewFolderName('')
         loadFiles()
       } else {
+        console.error('Folder creation failed:', data)
         alert(data.error || 'Failed to create folder')
       }
     } catch (error) {
       console.error('Error creating folder:', error)
-      alert('Failed to create folder')
+      alert(`Failed to create folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setCreatingFolder(false)
     }
   }
 
@@ -2172,15 +2194,26 @@ function LibraryTab({ userId }: { userId: string }) {
 
       {/* Folder Modal */}
       {showFolderModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => {
+            if (!creatingFolder) {
+              setShowFolderModal(false)
+              setNewFolderName('')
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-xl font-bold text-gray-900 mb-4">Create Folder</h3>
             <input
               type="text"
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder="Folder name"
-              className="w-full mb-4 p-2 border border-gray-300 rounded-lg"
+              className="w-full mb-4 p-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-magnolia-500 focus:border-magnolia-500"
               onKeyPress={(e) => {
                 if (e.key === 'Enter') {
                   handleCreateFolder()
@@ -2199,10 +2232,10 @@ function LibraryTab({ userId }: { userId: string }) {
               </button>
               <button
                 onClick={handleCreateFolder}
-                disabled={!newFolderName.trim()}
-                className="px-4 py-2 bg-magnolia-600 text-white rounded-lg hover:bg-magnolia-700 disabled:opacity-50"
+                disabled={!newFolderName.trim() || creatingFolder}
+                className="px-4 py-2 bg-magnolia-600 text-white rounded-lg hover:bg-magnolia-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Create
+                {creatingFolder ? 'Creating...' : 'Create'}
               </button>
             </div>
           </div>
